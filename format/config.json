@@ -1,0 +1,33 @@
+{
+    "music": [
+        "acoustic",
+        "ambient",
+        "cinematic",
+        "electronic",
+        "Lo-Fi Hip Hop"
+    ],
+    "scenes": [
+        {
+            "type": [
+                "stock_photo",
+                "stock_video",
+                "media_photo",
+                "media_video"
+            ],
+            "text_overlay": {
+                "position": [
+                    "center",
+                    "top",
+                    "bottom"
+                ]
+            },
+            "transition": [
+                "crossfade",
+                "fade-to-black",
+                "fade-from-black",
+                "slide",
+                "wipe"
+            ]
+        }
+    ]
+}
