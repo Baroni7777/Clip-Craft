@@ -8,7 +8,7 @@ from urllib.parse import quote, urlparse
 from dotenv import load_dotenv
 
 import streamlit as st
-from video_helpers import *
+from utils.video_helpers import *
 from moviepy.config import change_settings
 import google.generativeai as genai
 import google.cloud.texttospeech as tts
@@ -16,7 +16,7 @@ import google.cloud.texttospeech as tts
 
 load_dotenv()
 change_settings(
-    {"IMAGEMAGICK_BINARY": r"C:\\Program Files\\ImageMagick-7.1.1-Q16\\magick.exe"}
+    {"IMAGEMAGICK_BINARY": r"C:\\Program Files\\ImageMagick-7.1.1-Q16-HDRI\\magick.exe"}
 )
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -25,10 +25,10 @@ VID_PREF = "https://api.pexels.com/videos/search?"
 IMG_PREF = "https://api.pexels.com/v1/search?"
 
 
-with open("format/example.json", "r") as file:
+with open("constants/example.json", "r") as file:
     example = json.load(file)
 
-with open("format/config.json", "r") as file:
+with open("config/config.json", "r") as file:
     config = json.load(file)
 
 SYSTEM_MESSAGE = f"""
@@ -139,6 +139,10 @@ orient = st.selectbox("Orientation", ["landscape", "portrait"])
 uploaded_files = st.file_uploader(
     "Upload Media Files", accept_multiple_files=True, type=["jpg", "mp4"]
 )
+
+
+def start_script_generation():
+    pass
 
 if st.button("Generate Script"):
     if not title or not desc or not duration or not uploaded_files:
