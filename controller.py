@@ -9,6 +9,7 @@ from utils.database_operations import DatabaseOperations
 from content_creator import start_script_generation
 
 DATABASE_OPERATIONS_SERVICE = DatabaseOperations()
+
 class ApiController:
 
         async def upload_media(self, request: Request, response: Response):
@@ -44,14 +45,14 @@ class ApiController:
                 }
                 
                 log.info(f"User video options: {user_video_options}")
-                start_script_generation(user_video_options)
+                signed_file_url = start_script_generation(user_video_options, DATABASE_OPERATIONS_SERVICE)
                 
             except Exception as e:
                 log.error(f"Error processing request: {e}")
                 response.status_code = 500
                 return {"status": "error", "message": "Internal server error"}
             
-            return {"status": "ok"}
+            return {"signed_url": signed_file_url}
         
         
         
@@ -69,6 +70,7 @@ class ApiController:
             
         def test(self):
             #'DATABASE_OPERATIONS_SERVICE.create_document(collection_name="test", document_id="test", data=test_data)
-            document = DATABASE_OPERATIONS_SERVICE.get_document(collection_name="test", document_id="test")
-            return {"status": "ok"}
+            #document = DATABASE_OPERATIONS_SERVICE.get_document(collection_name="test", document_id="test")
+            file_signed_url = DATABASE_OPERATIONS_SERVICE.get_file_link(key="1060774.png")
+            return {"signed_url": file_signed_url}
 

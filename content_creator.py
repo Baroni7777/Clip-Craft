@@ -6,8 +6,7 @@ import re
 import requests
 from urllib.parse import quote, urlparse
 from dotenv import load_dotenv
-
-import streamlit as st
+import uuid
 from utils.video_helpers import *
 from moviepy.config import change_settings
 import google.generativeai as genai
@@ -23,7 +22,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 PEXEL_HEADERS = {"Authorization": os.getenv("PEXEL_API_KEY")}
 VID_PREF = "https://api.pexels.com/videos/search?"
 IMG_PREF = "https://api.pexels.com/v1/search?"
-
+SAVED_VIDEO_FORMAT = ".mp4"
 
 with open("constants/example.json", "r") as file:
     example = json.load(file)
@@ -128,7 +127,7 @@ def format_json(raw):
     return None
 
 
-def start_script_generation(user_video_options: dict):
+def start_script_generation(user_video_options: dict, DATABASE_OPERATIONS_SERVICE: any):
     
     title = user_video_options["title"]
     desc = user_video_options["description"]
@@ -159,6 +158,8 @@ def start_script_generation(user_video_options: dict):
         log.info("Analysing user media files")
         for file_name in uploaded_files_names:
             file_path = os.path.join(f"{user_media_path}\\media\\", file_name)
+            file_obj = None
+            prompt = None
             if file_path.endswith(".jpg"):
                 prompt = "write a short one-sentence description for the image"
                 file_obj = upload_img(file_path)
@@ -238,10 +239,18 @@ def start_script_generation(user_video_options: dict):
 
         final_clip = concatenate_videoclips(clips)
         final_clip = add_background_music(final_clip, music_file)
+        final_video_path = f"{user_media_path}\\final_video.mp4"
+        
         final_clip.write_videofile(
-            f"{user_media_path}\\final_video.mp4", codec="libx264", audio_codec="aac"
+            final_video_path, codec="libx264", audio_codec="aac"
         )
 
+        unique_final_video_name = str(uuid.uuid4())+SAVED_VIDEO_FORMAT
+        DATABASE_OPERATIONS_SERVICE.upload_file_by_path(final_video_path, unique_final_video_name)
+        signed_file_url = DATABASE_OPERATIONS_SERVICE.get_file_link(key=unique_final_video_name)
         shutil.rmtree(f"{user_media_path}\\media", ignore_errors=True)
         shutil.rmtree(f"{user_media_path}\\audio", ignore_errors=True)
+        shutil.rmtree(final_video_path, ignore_errors=True)
+        return signed_file_url
+
 
