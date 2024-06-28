@@ -45,17 +45,17 @@ class ApiController:
                 }
                 
                 log.info(f"User video options: {user_video_options}")
-                signed_file_url = start_script_generation(user_video_options, DATABASE_OPERATIONS_SERVICE)
+                response = start_script_generation(user_video_options, DATABASE_OPERATIONS_SERVICE)
                 
             except Exception as e:
                 log.error(f"Error processing request: {e}")
                 response.status_code = 500
                 return {"status": "error", "message": "Internal server error"}
             
-            return {"signed_url": signed_file_url}
+            return {"scenes": response["scenes"],"signed_url": response["signed_url"]}
         
         
-        
+
         async def process_file(self, file: UploadFile, unique_folder_name: str):
             log.info(f"Processing file: {file.filename}, size: {file.size}")
             save_directory = ".\\temp\\" + unique_folder_name + "\\media\\"
@@ -68,9 +68,9 @@ class ApiController:
             
             log.info(f"File saved to {file_path}")
             
-        def test(self):
-            #'DATABASE_OPERATIONS_SERVICE.create_document(collection_name="test", document_id="test", data=test_data)
-            #document = DATABASE_OPERATIONS_SERVICE.get_document(collection_name="test", document_id="test")
-            file_signed_url = DATABASE_OPERATIONS_SERVICE.get_file_link(key="1060774.png")
-            return {"signed_url": file_signed_url}
+        
+        
+        def edit_script(self, response: Response, scenes: any):
+            log.info(scenes)
+            return {"status": "ok"}
 

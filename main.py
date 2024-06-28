@@ -5,7 +5,7 @@ from fastapi.responses import Response;
 from controller import ApiController;
 from dotenv import load_dotenv
 import os
-
+from models.edit_script_request_body import EditScriptRequestBody
 
 app = FastAPI();
 load_dotenv()
@@ -31,6 +31,12 @@ def health_check():
          summary="Upload media for use in the AI generated video")
 async def upload_media(request: Request, response: Response):
     return await API_CONTROLLER.upload_media(request=request, response=response);
+
+@app.post("/v1/edit-script", status_code=200, 
+         summary="Edit the script for the AI generated video")
+def edit_script(response: Response, body: EditScriptRequestBody):
+    return API_CONTROLLER.edit_script(response=response, scenes=body.scenes);
+   
    
 @app.post("/test", status_code=200, 
          summary="Test Endpoint")

@@ -178,9 +178,10 @@ def start_script_generation(user_video_options: dict, DATABASE_OPERATIONS_SERVIC
         Media clips and AI descriptions: {media_data}
         """
         response = video_model.generate_content(video_prompt)
-        print(response.text)
+        log.info(response.text)
 
         script = format_json(response.text)
+        scenes = script["scenes"];
         
         # Downloading stock footage
         log.info("Downloading stock footage")
@@ -251,6 +252,6 @@ def start_script_generation(user_video_options: dict, DATABASE_OPERATIONS_SERVIC
         shutil.rmtree(f"{user_media_path}\\media", ignore_errors=True)
         shutil.rmtree(f"{user_media_path}\\audio", ignore_errors=True)
         shutil.rmtree(final_video_path, ignore_errors=True)
-        return signed_file_url
+        return {"signed_url":signed_file_url, "scenes":scenes}
 
 
