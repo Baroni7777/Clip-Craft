@@ -15,7 +15,7 @@ import logging as log
 
 load_dotenv()
 change_settings(
-    {"IMAGEMAGICK_BINARY": r"C:\\Program Files\\ImageMagick-7.1.1-Q16-HDRI\\magick.exe"}
+    {"IMAGEMAGICK_BINARY": os.getenv('IMAGE_MAGICK_PATH')}
 )
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
