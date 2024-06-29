@@ -1,7 +1,6 @@
 google-generativeai
 google-cloud-texttospeech
 python-dotenv
-streamlit
 moviepy
 Pillow==9.5.0
 fastapi
