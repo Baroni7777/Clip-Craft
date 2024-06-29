@@ -88,11 +88,11 @@ def create_photo_clip(photo_path, audio_path, res):
     return photo
 
 
-def add_text_overlay(clip, text):
-    text_clip = TextClip(text["content"], fontsize=70, color="white", font="Amiri-Bold")
-    text_clip = text_clip.set_position(text["position"]).set_duration(clip.duration)
+# def add_text_overlay(clip, text):
+#     text_clip = TextClip(text["content"], fontsize=70, color="white", font="Amiri-Bold")
+#     text_clip = text_clip.set_position(text["position"]).set_duration(clip.duration)
 
-    return CompositeVideoClip([clip, text_clip])
+#     return CompositeVideoClip([clip, text_clip])
 
 def add_background_music(video, music_file, volume=0.4):
     background_music = AudioFileClip(music_file).volumex(volume)

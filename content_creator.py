@@ -12,7 +12,7 @@ from moviepy.config import change_settings
 import google.generativeai as genai
 import google.cloud.texttospeech as tts
 import logging as log
-
+import copy
 load_dotenv()
 change_settings(
     {"IMAGEMAGICK_BINARY": os.getenv('IMAGE_MAGICK_PATH')}
@@ -181,7 +181,10 @@ def start_script_generation(user_video_options: dict, DATABASE_OPERATIONS_SERVIC
         log.info(response.text)
 
         script = format_json(response.text)
-        scenes = script["scenes"];
+        original_script = copy.deepcopy(script)
+        
+        
+        stock_media_urls = []
         
         # Downloading stock footage
         log.info("Downloading stock footage")
@@ -193,11 +196,13 @@ def start_script_generation(user_video_options: dict, DATABASE_OPERATIONS_SERVIC
                 if form == "video":
                     response = query_pexel(VID_PREF + suffix)
                     media_url = response["videos"][0]["video_files"][0]["link"]
+                    stock_media_urls.append(media_url)
                     file_path = download_stock(media_url, user_media_path=user_media_path)
 
                 elif form == "photo":
                     response = query_pexel(IMG_PREF + suffix)
                     media_url = response["photos"][0]["src"]["landscape"]
+                    stock_media_urls.append(media_url)
                     file_path = download_stock(media_url, user_media_path=user_media_path)
 
                 clip["media_path"] = file_path
@@ -225,8 +230,8 @@ def start_script_generation(user_video_options: dict, DATABASE_OPERATIONS_SERVIC
             elif form == "video":
                 clip = create_video_clip(pair["media_path"], pair["audio_path"], res)
 
-            if pair["text_overlay"]:
-                clip = add_text_overlay(clip, pair["text_overlay"])
+            # if pair["text_overlay"]:
+            #     clip = add_text_overlay(clip, pair["text_overlay"])
 
             # if i > 0:
             #     prev_clip = clips[-1]
@@ -252,6 +257,11 @@ def start_script_generation(user_video_options: dict, DATABASE_OPERATIONS_SERVIC
         shutil.rmtree(f"{user_media_path}\\media", ignore_errors=True)
         shutil.rmtree(f"{user_media_path}\\audio", ignore_errors=True)
         shutil.rmtree(final_video_path, ignore_errors=True)
-        return {"signed_url":signed_file_url, "scenes":scenes}
+        
+        for i in range(len(stock_media_urls)):
+            original_script["scenes"][i]["media_url"] = stock_media_urls[i]
+            
+        
+        return {"signed_url":signed_file_url, "scenes":original_script["scenes"]}
 
 
