@@ -66,6 +66,7 @@ class ContentCreator:
                     "gemini-1.5-flash", system_instruction=self.SYSTEM_MESSAGE
         )
 
+
     def upload_img(self, img_path):
         img_file = genai.upload_file(img_path)
         img_file = genai.get_file(img_file.name)
@@ -221,6 +222,7 @@ class ContentCreator:
                     clip["media_path"] = file_path
                     del clip["query"]
 
+            log.info("Done Downloading stock footage")
 
 
             # Generating Narration
@@ -232,6 +234,7 @@ class ContentCreator:
                 clip["audio_path"] = audio_path
                 del clip["script"]
 
+            log.info("Done Generating Narration")
 
             clips = []
             

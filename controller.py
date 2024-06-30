@@ -18,16 +18,30 @@ class ApiController:
                 user_provided_media = False
                 number_of_media_files = 0
                 file_names = []
-                formdata_dict = dict(request_formdata)
+                
+                formdata_dict = {}
+                media_files = []
 
+                for key, value in request_formdata.multi_items():
+                    if key == "media":
+                        media_files.append(value)
+                    else:
+                        formdata_dict[key] = value
+
+                # Add media files to the dictionary
+                formdata_dict["media"] = media_files
+                
                 for key, value in formdata_dict.items():
-                    if isinstance(value, UploadFile):
-                        file_names.append(value.filename)
-                        file: UploadFile = value
-                        if self.is_valid_file(file):
-                            number_of_media_files += 1
-                            await self.process_file(file=file, unique_folder_name=unique_folder_name)
-
+                    if key == "media":
+                        for media in value:
+                              if isinstance(media, UploadFile):
+                                file: UploadFile = media
+                                if self.is_valid_file(file):
+                                    number_of_media_files += 1
+                                    file_names.append(file.filename)
+                                    await self.process_file(file=file, unique_folder_name=unique_folder_name)
+                  
+            
                 if number_of_media_files > 0:
                     user_provided_media = True
                 
@@ -53,8 +67,8 @@ class ApiController:
                 response.status_code = 500
                 return {"status": "error", "message": "Internal server error"}
             
-            #return {"scenes": response["scenes"],"signed_url": response["signed_url"]}
-            return {}
+            return {"scenes": response["scenes"],"signed_url": response["signed_url"]}
+            
         
         def is_valid_file(self, file: UploadFile):
             if file.size > 0:

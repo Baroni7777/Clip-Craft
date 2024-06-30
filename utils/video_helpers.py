@@ -9,7 +9,6 @@ from moviepy.editor import (
     vfx,
 )
 
-
 class VideoTransitionHelper:
     @staticmethod
     def crossfade(clip1, clip2, duration):
@@ -89,6 +88,9 @@ def create_photo_clip(photo_path, audio_path, res):
 
 
 # def add_text_overlay(clip, text):
+#     imageMagick_path = "C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
+#     change_settings({"IMAGEMAGICK_BINARY": imageMagick_path})
+    
 #     text_clip = TextClip(text["content"], fontsize=70, color="white", font="Amiri-Bold")
 #     text_clip = text_clip.set_position(text["position"]).set_duration(clip.duration)
 
