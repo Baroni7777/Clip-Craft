@@ -6,8 +6,7 @@ import os
 import aiofiles
 import uuid
 from utils.database_operations import DatabaseOperations
-from content_creator import start_script_generation
-
+from content_creator import ContentCreator
 DATABASE_OPERATIONS_SERVICE = DatabaseOperations()
 
 class ApiController:
@@ -19,15 +18,15 @@ class ApiController:
                 user_provided_media = False
                 number_of_media_files = 0
                 file_names = []
-                # Convert request_formdata to a dictionary for easier access
                 formdata_dict = dict(request_formdata)
 
                 for key, value in formdata_dict.items():
                     if isinstance(value, UploadFile):
-                        number_of_media_files += 1
                         file_names.append(value.filename)
                         file: UploadFile = value
-                        await self.process_file(file=file, unique_folder_name=unique_folder_name)
+                        if self.is_valid_file(file):
+                            number_of_media_files += 1
+                            await self.process_file(file=file, unique_folder_name=unique_folder_name)
 
                 if number_of_media_files > 0:
                     user_provided_media = True
@@ -41,20 +40,26 @@ class ApiController:
                     "orientation": formdata_dict.get("orientation"),
                     "user_has_provided_media": user_provided_media,
                     "user_media_path": unique_folder_name,
-                    "uploaded_files_names": file_names
+                    "uploaded_files_names": file_names,
+                    "use_stock_media": self.string_to_bool(formdata_dict.get("use_stock_media")),
                 }
                 
                 log.info(f"User video options: {user_video_options}")
-                response = start_script_generation(user_video_options, DATABASE_OPERATIONS_SERVICE)
+                content_creator = ContentCreator(user_video_options=user_video_options, DATABASE_OPERATIONS_SERVICE=DATABASE_OPERATIONS_SERVICE)
+                response = content_creator.start_script_generation()
                 
             except Exception as e:
                 log.error(f"Error processing request: {e}")
                 response.status_code = 500
                 return {"status": "error", "message": "Internal server error"}
             
-            return {"scenes": response["scenes"],"signed_url": response["signed_url"]}
+            #return {"scenes": response["scenes"],"signed_url": response["signed_url"]}
+            return {}
         
-        
+        def is_valid_file(self, file: UploadFile):
+            if file.size > 0:
+                return True
+            return False
 
         async def process_file(self, file: UploadFile, unique_folder_name: str):
             log.info(f"Processing file: {file.filename}, size: {file.size}")
@@ -68,6 +73,15 @@ class ApiController:
             
             log.info(f"File saved to {file_path}")
             
+        
+        def string_to_bool(self, string: str):
+            try:
+                if string.lower() == "true":
+                    return True
+                return False
+            except Exception as e:
+                log.error(f"Error converting string to bool: {e}")
+                return False
         
         
         def edit_script(self, response: Response, scenes: any):

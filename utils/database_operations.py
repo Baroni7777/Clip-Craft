@@ -24,7 +24,6 @@ class DatabaseOperations:
     #### BUCKET OPERATIONS ####
 
     
-    
     def upload_file_by_path(self, file_path: str, file_name: str):
         try:
             log.info(f"Uploading file: {file_path}")
