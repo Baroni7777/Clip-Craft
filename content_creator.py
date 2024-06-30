@@ -196,9 +196,7 @@ class ContentCreator:
             log.info(response.text)
 
             script = self.format_json(raw=response.text)
-            original_script = copy.deepcopy(script)
             
-            stock_media_urls = []
         
             # Downloading stock footage
             log.info("Downloading stock footage")
@@ -210,19 +208,35 @@ class ContentCreator:
                     if form == "video":
                         response = self.query_pexel(VID_PREF + suffix)
                         media_url = response["videos"][0]["video_files"][0]["link"]
-                        stock_media_urls.append(media_url)
+                        clip["media_url"] = media_url
                         file_path = self.download_stock(media_url, user_media_path=self.user_media_path)
 
                     elif form == "photo":
                         response = self.query_pexel(IMG_PREF + suffix)
                         media_url = response["photos"][0]["src"]["landscape"]
-                        stock_media_urls.append(media_url)
+                        clip["media_url"] = media_url
                         file_path = self.download_stock(media_url, user_media_path=self.user_media_path)
-
+  
                     clip["media_path"] = file_path
                     del clip["query"]
 
+
             log.info("Done Downloading stock footage")
+            original_script = copy.deepcopy(script)
+
+            
+            for scene in original_script["scenes"]:
+                type = scene["type"]
+                if "stock" in type:
+                    if scene["media_path"]:
+                        del scene["media_path"]
+                else:
+                    temp_media_path = scene["media_path"]
+                    user_media_unique_name = str(uuid.uuid4())
+                    self.DATABASE_OPERATIONS_SERVICE.upload_file_by_path(temp_media_path, user_media_unique_name)
+                    user_media_signed_url = self.DATABASE_OPERATIONS_SERVICE.get_file_link(key=user_media_unique_name)
+                    scene["media_url"] = user_media_signed_url
+                    del scene["media_path"]
 
 
             # Generating Narration
@@ -259,6 +273,19 @@ class ContentCreator:
 
                 clips.append(clip)
 
+            for i in range(len(clips)):
+                clip_duration = clips[i].duration
+                if i == 0:
+                    original_script["scenes"][i]["duration"] = clip_duration
+                    original_script["scenes"][i]["start_time"] = 0
+                    original_script["scenes"][i]["end_time"] = 0+clip_duration
+                else:
+                    original_script["scenes"][i]["duration"] = clip_duration
+                    original_script["scenes"][i]["start_time"] = original_script["scenes"][i-1]["end_time"]
+                    original_script["scenes"][i]["end_time"] = original_script["scenes"][i]["start_time"]+clip_duration
+                
+            
+        
             final_clip = concatenate_videoclips(clips)
             final_clip = add_background_music(final_clip, music_file)
             final_video_path = f"{self.user_media_path}\\final_video.mp4"
@@ -274,8 +301,6 @@ class ContentCreator:
             shutil.rmtree(f"{self.user_media_path}\\audio", ignore_errors=True)
             shutil.rmtree(final_video_path, ignore_errors=True)
             
-            for i in range(len(stock_media_urls)):
-                original_script["scenes"][i]["media_url"] = stock_media_urls[i]
                 
             
             return {"signed_url":signed_file_url, "scenes":original_script["scenes"]}
