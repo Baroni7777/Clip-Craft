@@ -11,8 +11,7 @@
             "text_overlay": {
                 "position": [
                     "center",
-                    "top",
-                    "bottom"
+                    "top"
                 ]
             },
             "transition": [

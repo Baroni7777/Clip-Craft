@@ -94,21 +94,43 @@ def add_text_overlay(clip, text):
     return CompositeVideoClip([clip, text_clip])
 
 
-def get_subtitle_clips(response):
+def add_subtitle(text, start_time, duration):
+    text_clip = TextClip(text.strip(), fontsize=24, color="white", bg_color="black")
+    text_clip = text_clip.set_start(start_time).set_duration(duration)
+    text_clip = text_clip.set_position(('center', 'bottom'))
+
+    return text_clip
+
+
+def get_subtitle_clips(response, seconds_per_segment: int = 5):
     subtitle_clips = []
+    segment_start_time = 0.0
+    segment_text = ""
+
     for result in response.results:
         for word_info in result.alternatives[0].words:
-            start_time = word_info.start_time.total_seconds()
-            end_time = word_info.end_time.total_seconds()
+            word_start_time = word_info.start_time.total_seconds()
             text = word_info.word
-            subtitle_clip = TextClip(text, fontsize=24, color='white', bg_color='black')
-            subtitle_clip = subtitle_clip.set_start(start_time).set_duration(end_time - start_time)
-            subtitle_clip = subtitle_clip.set_position(('center', 'bottom'))
-            subtitle_clips.append(subtitle_clip)
+
+            if word_start_time - segment_start_time >= seconds_per_segment:
+                subtitle_clip = add_subtitle(segment_text, segment_start_time, seconds_per_segment)
+                subtitle_clips.append(subtitle_clip)
+
+                segment_start_time = word_start_time
+                segment_text = text + " "
+            else:
+                segment_text += text + " "
+
+    # Add the last segment
+    if segment_text:
+        final_duration = word_start_time - segment_start_time
+        subtitle_clip = add_subtitle(segment_text, segment_start_time, final_duration)
+        subtitle_clips.append(subtitle_clip)
+
     return subtitle_clips
 
 
-def add_background_music(video, music_file, volume=0.4):
+def add_background_music(video, music_file, volume=0.2):
     background_music = AudioFileClip(music_file).volumex(volume)
     video_audio = video.audio
     final_audio = CompositeAudioClip([video_audio, background_music.set_duration(video.duration)])

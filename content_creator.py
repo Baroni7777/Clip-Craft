@@ -27,6 +27,7 @@ PEXEL_HEADERS = {"Authorization": os.getenv("PEXEL_API_KEY")}
 VID_PREF = "https://api.pexels.com/videos/search?"
 IMG_PREF = "https://api.pexels.com/v1/search?"
 SAVED_VIDEO_FORMAT = ".mp4"
+SAMPLE_RATE = 44100
 SUPPORTED_IMAGE_FORMATS = [".jpg", ".jpeg", ".png", ".webp", ".heic"]
 SUPPORTED_VIDEO_FORMATS = [".mp4", ".mov", ".mpeg", ".avi"]
 
@@ -117,7 +118,7 @@ class ContentCreator:
         audio_config = tts.AudioConfig(audio_encoding=tts.AudioEncoding.LINEAR16)
 
         client = tts.TextToSpeechClient(
-            client_options={"api_key": os.getenv("GCLOUD_API_KEY")}
+            client_options={"api_key": os.getenv("SPEECH_API_KEY")}
         )
         response = client.synthesize_speech(
             input=text_input,
@@ -133,15 +134,16 @@ class ContentCreator:
         return file_path
     
     def speech_to_text(self, audio_path: str):
-        client = speech.SpeechClient(client_options={"api_key": os.getenv("GCLOUD_API_KEY")})
+        client = speech.SpeechClient(client_options={"api_key": os.getenv("SPEECH_API_KEY")})
         with io.open(audio_path, "rb") as audio_file:
             content = audio_file.read()
             audio = speech.RecognitionAudio(content=content)
 
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-            sample_rate_hertz=16000,
+            sample_rate_hertz=SAMPLE_RATE,
             language_code="en-US",
+            audio_channel_count=2,
             enable_word_time_offsets=True
         )
 
@@ -214,12 +216,9 @@ class ContentCreator:
             Media clips and AI descriptions: {media_data}
             """
             response = self.video_model.generate_content(video_prompt)
-            log.info(response.text)
-
             script = self.format_json(raw=response.text)
-            
         
-            log.info("Downloading stock footage")
+            log.info("Retrieving pexel footage and media bucket links..")
             for clip in script["scenes"]:
                 source, form = clip["type"].split("_")
                 if source == "stock":
@@ -236,27 +235,17 @@ class ContentCreator:
                         media_url = response["photos"][0]["src"]["landscape"]
                         clip["media_url"] = media_url
                         file_path = self.download_stock(media_url, user_media_path=self.user_media_path)
-  
+
                     clip["media_path"] = file_path
                     del clip["query"]
 
-
-            log.info("Done Downloading stock footage")
-            script_return = copy.deepcopy(script)
-
-            log.info('Uploading user media to cloud buckets..')
-            for scene in script_return["scenes"]:
-                if "stock" in scene["type"]:
-                    if scene["media_path"]:
-                        del scene["media_path"]
                 else:
-                    temp_media_path = scene["media_path"]
+                    temp_media_path = clip["media_path"]
                     user_media_unique_name = str(uuid.uuid4())
                     self.DATABASE_OPERATIONS_SERVICE.upload_file_by_path(temp_media_path, user_media_unique_name)
                     user_media_signed_url = self.DATABASE_OPERATIONS_SERVICE.get_file_link(key=user_media_unique_name)
-                    scene["media_url"] = user_media_signed_url
-                    del scene["media_path"]
-
+                    clip["media_url"] = user_media_signed_url
+  
 
             log.info("Generating Narration")
             for clip in script["scenes"]:
@@ -264,13 +253,10 @@ class ContentCreator:
                 text = clip["script"]
                 audio_path = self.text_to_speech(text, file_name, user_media_path=self.user_media_path)
                 clip["audio_path"] = audio_path
-                del clip["script"]
-
-            log.info("Done Generating Narration")
-            print(script)
-
+            
+            
+            log.info("Generating video clips..")
             mov_clips = []
-            music_file = os.path.join("music", script["music"] + ".mp3")
             for i, pair in enumerate(script["scenes"]):
                 form = pair["type"].split("_")[1]
                 if form == "photo":
@@ -279,7 +265,7 @@ class ContentCreator:
                     mov_clip = create_video_clip(pair["media_path"], pair["audio_path"], res)
 
                 if pair["text_overlay"]:
-                    mov_clip = add_text_overlay(clip, pair["text_overlay"])
+                    mov_clip = add_text_overlay(mov_clip, pair["text_overlay"])
 
                 # transitions
                 # if i > 0:
@@ -292,23 +278,25 @@ class ContentCreator:
 
                 mov_clips.append(mov_clip)
 
+            
+            final_video = concatenate_videoclips(mov_clips)
+            log.info('Writing timestamps..')
             for i in range(len(mov_clips)):
                 clip_duration = mov_clips[i].duration
                 if i == 0:
-                    script_return["scenes"][i]["duration"] = clip_duration
-                    script_return["scenes"][i]["start_time"] = 0
-                    script_return["scenes"][i]["end_time"] = 0+clip_duration
+                    script["scenes"][i]["start_time"] = 0
+                    script["scenes"][i]["end_time"] = 0+clip_duration
                 else:
-                    script_return["scenes"][i]["duration"] = clip_duration
-                    script_return["scenes"][i]["start_time"] = script_return["scenes"][i-1]["end_time"]
-                    script_return["scenes"][i]["end_time"] = script_return["scenes"][i]["start_time"]+clip_duration
-            
-        
-            final_video = concatenate_videoclips(mov_clips)
+                    script["scenes"][i]["start_time"] = script["scenes"][i-1]["end_time"]
+                    script["scenes"][i]["end_time"] = script["scenes"][i]["start_time"]+clip_duration
 
-            audio_path = f"{self.user_media_path}\\final_audio.mp3"
+                del script["scenes"][i]["media_path"]
+                del script["scenes"][i]["audio_path"]
+
+
+            audio_path = f"{self.user_media_path}\\final_audio.wav"
             audio_clip = final_video.audio
-            audio_clip.fps = 44100
+            audio_clip.fps = SAMPLE_RATE
             audio_clip.write_audiofile(audio_path)
 
             log.info("Generating subtitles..")
@@ -318,7 +306,7 @@ class ContentCreator:
             final_video = CompositeVideoClip([final_video] + subtitles)
 
             log.info("Adding background music..")
-
+            music_file = os.path.join("music", script["music"] + ".mp3")
             final_video = add_background_music(final_video, music_file)
             final_video_path = f"{self.user_media_path}\\final_video.mp4"
             
@@ -326,9 +314,10 @@ class ContentCreator:
                 final_video_path, codec="libx264", audio_codec="aac"
             )
 
+
             unique_final_video_name = str(uuid.uuid4())+SAVED_VIDEO_FORMAT
             self.DATABASE_OPERATIONS_SERVICE.upload_file_by_path(final_video_path, unique_final_video_name)
             signed_file_url = self.DATABASE_OPERATIONS_SERVICE.get_file_link(key=unique_final_video_name)
             shutil.rmtree(self.user_media_path, ignore_errors=True)
             
-            return {"signed_url": signed_file_url, "scenes": script_return["scenes"]}
+            return {"signed_url": signed_file_url, "script": script}
