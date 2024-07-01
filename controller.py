@@ -1,17 +1,19 @@
 from fastapi.responses import Response
 from fastapi import Request
 from starlette.datastructures import UploadFile
-import logging as log
 import os
 import aiofiles
 import uuid
+import logging as log
 from utils.database_operations import DatabaseOperations
 from content_creator import ContentCreator
+
+
 DATABASE_OPERATIONS_SERVICE = DatabaseOperations()
 
 class ApiController:
 
-        async def upload_media(self, request: Request, response: Response):
+        async def generate_video(self, request: Request, response: Response):
             try:
                 request_formdata = await request.form()
                 unique_folder_name = str(uuid.uuid4())
@@ -28,13 +30,12 @@ class ApiController:
                     else:
                         formdata_dict[key] = value
 
-                # Add media files to the dictionary
                 formdata_dict["media"] = media_files
                 
                 for key, value in formdata_dict.items():
                     if key == "media":
                         for media in value:
-                              if isinstance(media, UploadFile):
+                            if isinstance(media, UploadFile):
                                 file: UploadFile = media
                                 if self.is_valid_file(file):
                                     number_of_media_files += 1
@@ -45,7 +46,6 @@ class ApiController:
                 if number_of_media_files > 0:
                     user_provided_media = True
                 
-                # Extract user video options from the form data
                 user_video_options = {
                     "title": formdata_dict.get("title"),
                     "description": formdata_dict.get("description"),
@@ -67,7 +67,7 @@ class ApiController:
                 response.status_code = 500
                 return {"status": "error", "message": "Internal server error"}
             
-            return {"scenes": response["scenes"],"signed_url": response["signed_url"]}
+            return {"scenes": response["scenes"], "signed_url": response["signed_url"]}
             
         
         def is_valid_file(self, file: UploadFile):
@@ -98,7 +98,6 @@ class ApiController:
                 return False
         
         
-        def edit_script(self, response: Response, scenes: any):
+        def edit_video(self, response: Response, scenes: any):
             log.info(scenes)
             return {"status": "ok"}
-

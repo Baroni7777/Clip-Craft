@@ -1,14 +1,15 @@
-import logging as log;
 from fastapi import FastAPI, Request;
 from fastapi.middleware.cors import CORSMiddleware;
 from fastapi.responses import Response;
-from controller import ApiController;
-from dotenv import load_dotenv
 import os
+import logging as log;
+from dotenv import load_dotenv
+from controller import ApiController;
 from models.edit_script_request_body import EditScriptRequestBody
 
-app = FastAPI();
+
 load_dotenv()
+app = FastAPI();
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,15 +28,15 @@ supported_file_formats = []
 def health_check():
     return {"status": "ok"}
 
-@app.post("/v1/upload-media", status_code=200, 
-         summary="Upload media for use in the AI generated video")
-async def upload_media(request: Request, response: Response):
-    return await API_CONTROLLER.upload_media(request=request, response=response);
+@app.post("/v1/generate-video", status_code=200, 
+         summary="Generate scenes for the AI generated video")
+async def generate_video(request: Request, response: Response):
+    return await API_CONTROLLER.generate_video(request=request, response=response);
 
-@app.post("/v1/edit-script", status_code=200, 
-         summary="Edit the script for the AI generated video")
-def edit_script(response: Response, body: EditScriptRequestBody):
-    return API_CONTROLLER.edit_script(response=response, scenes=body.scenes);
+@app.post("/v1/edit-video", status_code=200, 
+         summary="Edit the scenes for the AI generated video")
+def edit_video(response: Response, body: EditScriptRequestBody):
+    return API_CONTROLLER.edit_video(response=response, scenes=body.scenes);
    
    
 @app.post("/test", status_code=200, 

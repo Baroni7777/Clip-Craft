@@ -8,12 +8,6 @@
     ],
     "scenes": [
         {
-            "type": [
-                "stock_photo",
-                "stock_video",
-                "media_photo",
-                "media_video"
-            ],
             "text_overlay": {
                 "position": [
                     "center",

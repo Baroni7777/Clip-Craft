@@ -17,7 +17,6 @@ As your response, write in this structured JSON format:
         {
             "type": "stock_photo",
             "query": "sunset over mountains",
-            "media_path": null,
             "script": "The sun sets over the tranquil mountains, painting the sky in hues of orange and pink.",
             "text_overlay": {
                 "content": "Sunset over Mountains",
@@ -27,7 +26,6 @@ As your response, write in this structured JSON format:
         },
         {
             "type": "media_video",
-            "query": null,
             "media_path": "/path/to/user/video.mp4",
             "script": "Our family vacation was unforgettable, filled with laughter and joy.",
             "text_overlay": null,
@@ -35,39 +33,5 @@ As your response, write in this structured JSON format:
         }
     ]
 }
-
+scene type must be one of the following: 'stock_photo', 'stock_video', 'media_photo', 'media_video'.
 Note the values above is just an example, Enclose property names in double quotes.
-Here are some input options you can use:
-{
-    "music": [
-        "acoustic",
-        "ambient",
-        "cinematic",
-        "electronic",
-        "Lo-Fi Hip Hop"
-    ],
-    "scenes": [
-        {
-            "type": [
-                "stock_photo",
-                "stock_video",
-                "media_photo",
-                "media_video"
-            ],
-            "text_overlay": {
-                "position": [
-                    "center",
-                    "top",
-                    "bottom"
-                ]
-            },
-            "transition": [
-                "crossfade",
-                "fade-to-black",
-                "fade-from-black",
-                "slide",
-                "wipe"
-            ]
-        }
-    ]
-}

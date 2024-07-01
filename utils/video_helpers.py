@@ -66,7 +66,7 @@ class VideoTransitionHelper:
 def create_video_clip(video_path, audio_path, res):
     audio = AudioFileClip(audio_path)
     duration = audio.duration
-    video = VideoFileClip(video_path).set_fps(25).resize(res)
+    video = VideoFileClip(video_path).set_fps(24).resize(res)
 
     if video.duration > duration:
         video = video.subclip(0, duration)
@@ -87,14 +87,26 @@ def create_photo_clip(photo_path, audio_path, res):
     return photo
 
 
-# def add_text_overlay(clip, text):
-#     imageMagick_path = "C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
-#     change_settings({"IMAGEMAGICK_BINARY": imageMagick_path})
-    
-#     text_clip = TextClip(text["content"], fontsize=70, color="white", font="Amiri-Bold")
-#     text_clip = text_clip.set_position(text["position"]).set_duration(clip.duration)
+def add_text_overlay(clip, text):
+    text_clip = TextClip(text["content"], fontsize=70, color="white", font="Amiri-Bold")
+    text_clip = text_clip.set_position(text["position"]).set_duration(clip.duration)
 
-#     return CompositeVideoClip([clip, text_clip])
+    return CompositeVideoClip([clip, text_clip])
+
+
+def get_subtitle_clips(response):
+    subtitle_clips = []
+    for result in response.results:
+        for word_info in result.alternatives[0].words:
+            start_time = word_info.start_time.total_seconds()
+            end_time = word_info.end_time.total_seconds()
+            text = word_info.word
+            subtitle_clip = TextClip(text, fontsize=24, color='white', bg_color='black')
+            subtitle_clip = subtitle_clip.set_start(start_time).set_duration(end_time - start_time)
+            subtitle_clip = subtitle_clip.set_position(('center', 'bottom'))
+            subtitle_clips.append(subtitle_clip)
+    return subtitle_clips
+
 
 def add_background_music(video, music_file, volume=0.4):
     background_music = AudioFileClip(music_file).volumex(volume)

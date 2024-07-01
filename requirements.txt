@@ -1,5 +1,6 @@
 google-generativeai
 google-cloud-texttospeech
+google-cloud-speech
 python-dotenv
 moviepy
 Pillow==9.5.0

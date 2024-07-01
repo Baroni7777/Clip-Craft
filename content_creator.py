@@ -1,22 +1,23 @@
 import os
 import shutil
 import time
+import copy
 import json
-import re
-import requests
-from urllib.parse import quote, urlparse
-from dotenv import load_dotenv
 import uuid
+import re
+import io
+import requests
+import logging as log
+from urllib.parse import quote, urlparse
+
 from utils.video_helpers import *
 from moviepy.config import change_settings
 import google.generativeai as genai
 import google.cloud.texttospeech as tts
-import logging as log
-import copy
-load_dotenv()
+from google.cloud import speech_v1p1beta1 as speech
 
 
-    
+
 change_settings(
     {"IMAGEMAGICK_BINARY": os.getenv('IMAGE_MAGICK_PATH')}
 )
@@ -26,12 +27,8 @@ PEXEL_HEADERS = {"Authorization": os.getenv("PEXEL_API_KEY")}
 VID_PREF = "https://api.pexels.com/videos/search?"
 IMG_PREF = "https://api.pexels.com/v1/search?"
 SAVED_VIDEO_FORMAT = ".mp4"
-
-with open("constants/example.json", "r") as file:
-    example = json.load(file)
-
-with open("config/config.json", "r") as file:
-    config = json.load(file)
+SUPPORTED_IMAGE_FORMATS = [".jpg", ".jpeg", ".png", ".webp", ".heic"]
+SUPPORTED_VIDEO_FORMATS = [".mp4", ".mov", ".mpeg", ".avi"]
 
 
 class ContentCreator:
@@ -43,13 +40,12 @@ class ContentCreator:
       
         unique_folder_id_param = user_video_options["user_media_path"];
         
-        self.desc_model = genai.GenerativeModel("gemini-1.5-flash")
         self.title = user_video_options["title"]
         self.desc = user_video_options["description"]
         self.style = user_video_options["template"]
         self.duration = user_video_options["duration"]
         self.orientation = user_video_options["orientation"]
-        self.unique_folder_id = unique_folder_id_param
+
         self.uploaded_files_names = user_video_options["uploaded_files_names"]
         self.user_media_path = f"temp\\{unique_folder_id_param}"
         self.use_stock_media = user_video_options["use_stock_media"]
@@ -62,6 +58,12 @@ class ContentCreator:
         else:
             self.SYSTEM_MESSAGE = self.get_system_prompt("stock")
 
+        with open("config/config.json", "r") as file:
+            config = json.load(file)
+
+        self.SYSTEM_MESSAGE += f'\nHere are some input options you can use:\n {config}'
+
+        self.desc_model = genai.GenerativeModel("gemini-1.5-flash")
         self.video_model = genai.GenerativeModel(
                     "gemini-1.5-flash", system_instruction=self.SYSTEM_MESSAGE
         )
@@ -129,6 +131,22 @@ class ContentCreator:
             print(f'Generated speech saved to "{file_path}"')
 
         return file_path
+    
+    def speech_to_text(self, audio_path: str):
+        client = speech.SpeechClient(client_options={"api_key": os.getenv("GCLOUD_API_KEY")})
+        with io.open(audio_path, "rb") as audio_file:
+            content = audio_file.read()
+            audio = speech.RecognitionAudio(content=content)
+
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=16000,
+            language_code="en-US",
+            enable_word_time_offsets=True
+        )
+
+        response = client.recognize(config=config, audio=audio)
+        return response
 
 
     def format_json(self, raw):
@@ -144,12 +162,14 @@ class ContentCreator:
                 log.error("Could not parse JSON")
         return None
 
+
     def get_system_prompt(self, prompt_type: str):
         file_path = f'./constants/profiles/{prompt_type}.txt'
         log.info(f"Reading system prompt from {file_path}")
         with open(file_path, 'r') as file:
             file_content = file.read()
         return file_content
+
 
     def start_script_generation(self):
         
@@ -175,10 +195,11 @@ class ContentCreator:
                 file_path = os.path.join(f"{self.user_media_path}\\media\\", file_name)
                 file_obj = None
                 prompt = None
-                if file_path.endswith(".jpg"):
+
+                if any(file_path.endswith(ext) for ext in SUPPORTED_IMAGE_FORMATS):
                     prompt = "write a short one-sentence description for the image"
                     file_obj = self.upload_img(file_path)
-                elif file_path.endswith(".mp4"):
+                elif any(file_path.endswith(ext) for ext in SUPPORTED_VIDEO_FORMATS):
                     prompt = "write a short one-paragraph description for the video, depending on its duration."
                     file_obj = self.upload_vid(file_path)
 
@@ -198,7 +219,6 @@ class ContentCreator:
             script = self.format_json(raw=response.text)
             
         
-            # Downloading stock footage
             log.info("Downloading stock footage")
             for clip in script["scenes"]:
                 source, form = clip["type"].split("_")
@@ -222,12 +242,11 @@ class ContentCreator:
 
 
             log.info("Done Downloading stock footage")
-            original_script = copy.deepcopy(script)
+            script_return = copy.deepcopy(script)
 
-            
-            for scene in original_script["scenes"]:
-                type = scene["type"]
-                if "stock" in type:
+            log.info('Uploading user media to cloud buckets..')
+            for scene in script_return["scenes"]:
+                if "stock" in scene["type"]:
                     if scene["media_path"]:
                         del scene["media_path"]
                 else:
@@ -239,7 +258,6 @@ class ContentCreator:
                     del scene["media_path"]
 
 
-            # Generating Narration
             log.info("Generating Narration")
             for clip in script["scenes"]:
                 file_name = os.path.splitext(os.path.basename(clip["media_path"]))[0]
@@ -249,20 +267,21 @@ class ContentCreator:
                 del clip["script"]
 
             log.info("Done Generating Narration")
+            print(script)
 
-            clips = []
-            
+            mov_clips = []
             music_file = os.path.join("music", script["music"] + ".mp3")
             for i, pair in enumerate(script["scenes"]):
                 form = pair["type"].split("_")[1]
                 if form == "photo":
-                    clip = create_photo_clip(pair["media_path"], pair["audio_path"], res)
+                    mov_clip = create_photo_clip(pair["media_path"], pair["audio_path"], res)
                 elif form == "video":
-                    clip = create_video_clip(pair["media_path"], pair["audio_path"], res)
+                    mov_clip = create_video_clip(pair["media_path"], pair["audio_path"], res)
 
-                # if pair["text_overlay"]:
-                #     clip = add_text_overlay(clip, pair["text_overlay"])
+                if pair["text_overlay"]:
+                    mov_clip = add_text_overlay(clip, pair["text_overlay"])
 
+                # transitions
                 # if i > 0:
                 #     prev_clip = clips[-1]
                 #     transition_type = script["scenes"][i - 1].get("transition", "fade")
@@ -271,38 +290,45 @@ class ContentCreator:
                 #     )
                 #     clips[-1] = prev_clip
 
-                clips.append(clip)
+                mov_clips.append(mov_clip)
 
-            for i in range(len(clips)):
-                clip_duration = clips[i].duration
+            for i in range(len(mov_clips)):
+                clip_duration = mov_clips[i].duration
                 if i == 0:
-                    original_script["scenes"][i]["duration"] = clip_duration
-                    original_script["scenes"][i]["start_time"] = 0
-                    original_script["scenes"][i]["end_time"] = 0+clip_duration
+                    script_return["scenes"][i]["duration"] = clip_duration
+                    script_return["scenes"][i]["start_time"] = 0
+                    script_return["scenes"][i]["end_time"] = 0+clip_duration
                 else:
-                    original_script["scenes"][i]["duration"] = clip_duration
-                    original_script["scenes"][i]["start_time"] = original_script["scenes"][i-1]["end_time"]
-                    original_script["scenes"][i]["end_time"] = original_script["scenes"][i]["start_time"]+clip_duration
-                
+                    script_return["scenes"][i]["duration"] = clip_duration
+                    script_return["scenes"][i]["start_time"] = script_return["scenes"][i-1]["end_time"]
+                    script_return["scenes"][i]["end_time"] = script_return["scenes"][i]["start_time"]+clip_duration
             
         
-            final_clip = concatenate_videoclips(clips)
-            final_clip = add_background_music(final_clip, music_file)
+            final_video = concatenate_videoclips(mov_clips)
+
+            audio_path = f"{self.user_media_path}\\final_audio.mp3"
+            audio_clip = final_video.audio
+            audio_clip.fps = 44100
+            audio_clip.write_audiofile(audio_path)
+
+            log.info("Generating subtitles..")
+
+            transcript = self.speech_to_text(audio_path)
+            subtitles = get_subtitle_clips(transcript)
+            final_video = CompositeVideoClip([final_video] + subtitles)
+
+            log.info("Adding background music..")
+
+            final_video = add_background_music(final_video, music_file)
             final_video_path = f"{self.user_media_path}\\final_video.mp4"
             
-            final_clip.write_videofile(
-                final_video_path, codec="libx264", audio_codec="aac", fps=24
+            final_video.write_videofile(
+                final_video_path, codec="libx264", audio_codec="aac"
             )
 
             unique_final_video_name = str(uuid.uuid4())+SAVED_VIDEO_FORMAT
             self.DATABASE_OPERATIONS_SERVICE.upload_file_by_path(final_video_path, unique_final_video_name)
             signed_file_url = self.DATABASE_OPERATIONS_SERVICE.get_file_link(key=unique_final_video_name)
-            shutil.rmtree(f"{self.user_media_path}\\media", ignore_errors=True)
-            shutil.rmtree(f"{self.user_media_path}\\audio", ignore_errors=True)
-            shutil.rmtree(final_video_path, ignore_errors=True)
+            shutil.rmtree(self.user_media_path, ignore_errors=True)
             
-                
-            
-            return {"signed_url":signed_file_url, "scenes":original_script["scenes"]}
-
-
+            return {"signed_url": signed_file_url, "scenes": script_return["scenes"]}

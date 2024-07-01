@@ -33,37 +33,3 @@ As your response, write in this structured JSON format:
 }
 
 Note the values above is just an example, Enclose property names in double quotes.
-Here are some input options you can use:
-{
-    "music": [
-        "acoustic",
-        "ambient",
-        "cinematic",
-        "electronic",
-        "Lo-Fi Hip Hop"
-    ],
-    "scenes": [
-        {
-            "type": [
-                "stock_photo",
-                "stock_video",
-                "media_photo",
-                "media_video"
-            ],
-            "text_overlay": {
-                "position": [
-                    "center",
-                    "top",
-                    "bottom"
-                ]
-            },
-            "transition": [
-                "crossfade",
-                "fade-to-black",
-                "fade-from-black",
-                "slide",
-                "wipe"
-            ]
-        }
-    ]
-}

@@ -1,14 +1,10 @@
-from firebase_admin import storage
-import logging as log
-import os
 import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import firestore
-from dotenv import load_dotenv
+from firebase_admin import storage, credentials, firestore
+import os
+import logging as log
 import datetime
 
 
-load_dotenv()
 cred = credentials.Certificate(os.getcwd() + "\\credentials\\service_account_credentials.json")
 firebase_admin.initialize_app(cred, {
     'storageBucket': os.getenv("FIREBASE_STORAGE_BUCKET")
@@ -43,8 +39,6 @@ class DatabaseOperations:
             os.makedirs(destination_path, exist_ok=True)
             blob.download_to_filename(local_file_path)
             log.info(f"File {key} downloaded to {destination_path}.")
-        except PermissionError as e:
-            print(f'Failed to download file {key}: {e}')
         except Exception as e:
             log.error(f"Failed to download file {key}: {e}")
             
