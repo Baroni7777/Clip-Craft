@@ -3,8 +3,9 @@ from firebase_admin import storage, credentials, firestore
 import os
 import logging as log
 import datetime
+from dotenv import load_dotenv
 
-
+load_dotenv()
 cred = credentials.Certificate(os.getcwd() + "\\credentials\\service_account_credentials.json")
 firebase_admin.initialize_app(cred, {
     'storageBucket': os.getenv("FIREBASE_STORAGE_BUCKET")
@@ -44,7 +45,7 @@ class DatabaseOperations:
             
 
 
-    def get_file_link(self, key: str, expiration: int = 10):
+    def get_file_link(self, key: str, expiration: int = 40):
         try:
             log.info(f"Generating signed URL for file: {key}")
             blob = bucket.blob(key)

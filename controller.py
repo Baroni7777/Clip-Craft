@@ -10,7 +10,6 @@ from content_creator import ContentCreator
 
 
 DATABASE_OPERATIONS_SERVICE = DatabaseOperations()
-
 class ApiController:
 
         async def generate_video(self, request: Request, response: Response):
@@ -97,6 +96,16 @@ class ApiController:
                 return False
         
         
-        def edit_video(self, response: Response, scenes: any):
-            log.info(scenes)
-            return {"status": "ok"}
+        def edit_video(self, response: Response, scenes: any, final_video_url: str):
+            edited_scene_index = 0;
+            for i in range (len(scenes)):
+                if "edited" in scenes[i] and self.string_to_bool(scenes[i]["edited"]) == True:
+                    edited_scene_index = i;
+                    break;
+            
+            # edited_video_signed_url = content_creator.edit_video(scenes[edited_scene_index], final_video_url)
+            #log.info(f"Editing scene index: {edited_scene_index}")
+            content_creator = ContentCreator(DATABASE_OPERATIONS_SERVICE=DATABASE_OPERATIONS_SERVICE)
+            edited_video_signed_url = content_creator.edit_video(scene_to_be_edited=scenes[edited_scene_index], DATABASE_OPERATIONS_SERVICE=DATABASE_OPERATIONS_SERVICE, content_creator=content_creator, final_video_url=final_video_url)
+                        
+            return {"signed_url": edited_video_signed_url}

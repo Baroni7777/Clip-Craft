@@ -16,8 +16,6 @@ import google.generativeai as genai
 import google.cloud.texttospeech as tts
 from google.cloud import speech_v1p1beta1 as speech
 
-
-
 change_settings(
     {"IMAGEMAGICK_BINARY": os.getenv('IMAGE_MAGICK_PATH')}
 )
@@ -35,10 +33,12 @@ SUPPORTED_VIDEO_FORMATS = [".mp4", ".mov", ".mpeg", ".avi"]
 class ContentCreator:
 
     
-    def __init__(self, user_video_options: dict, DATABASE_OPERATIONS_SERVICE: any):
+    def __init__(self,DATABASE_OPERATIONS_SERVICE: any, user_video_options: dict = {}):
         self.user_video_options = user_video_options;
         self.DATABASE_OPERATIONS_SERVICE = DATABASE_OPERATIONS_SERVICE;
-      
+        if not user_video_options:
+            return;
+        
         unique_folder_id_param = user_video_options["user_media_path"];
         
         self.title = user_video_options["title"]
@@ -321,3 +321,8 @@ class ContentCreator:
             shutil.rmtree(self.user_media_path, ignore_errors=True)
             
             return {"signed_url": signed_file_url, "script": script}
+    
+    
+    def edit_video(self, scene_to_be_edited: any, DATABASE_OPERATIONS_SERVICE: any, content_creator: any, final_video_url: str):
+        return edit_video(final_video_url=final_video_url, start_time=scene_to_be_edited["start_time"], end_time=scene_to_be_edited["end_time"], scene=scene_to_be_edited, DatabaseOperationsService=DATABASE_OPERATIONS_SERVICE, content_creator=content_creator)
+      
