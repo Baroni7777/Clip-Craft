@@ -1,15 +1,15 @@
-from fastapi import FastAPI, Request;
-from fastapi.middleware.cors import CORSMiddleware;
-from fastapi.responses import Response;
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 import os
-import logging as log;
+import logging as log
 from dotenv import load_dotenv
-from controller import ApiController;
+from controller import ApiController
 from models.edit_script_request_body import EditScriptRequestBody
 from fastapi.middleware.gzip import GZipMiddleware
 
 load_dotenv()
-app = FastAPI();
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,30 +18,42 @@ app.add_middleware(
     allow_headers=(os.getenv("ALLOWED_HEADERS")),
     allow_credentials=True,
 )
-API_CONTROLLER = ApiController();
-log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S %z')
-#app.add_middleware(GZipMiddleware, minimum_size=1000)
+API_CONTROLLER = ApiController()
+log.basicConfig(
+    level=log.INFO,
+    format="%(asctime)s - %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S %z",
+)
+# app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 supported_file_formats = []
 
-@app.get("/health-check", status_code=200, 
-         summary="Health check endpoint to verify the service is up and running")
+
+@app.get(
+    "/health-check",
+    status_code=200,
+    summary="Health check endpoint to verify the service is up and running",
+)
 def health_check():
     return {"status": "ok"}
 
-@app.post("/v1/generate-video", status_code=200, 
-         summary="Generate scenes for the AI generated video")
+
+@app.post(
+    "/v1/generate-video",
+    status_code=200,
+    summary="Generate scenes for the AI generated video",
+)
 async def generate_video(request: Request, response: Response):
-    return await API_CONTROLLER.generate_video(request=request, response=response);
+    return await API_CONTROLLER.generate_video(request=request, response=response)
 
-@app.post("/v1/edit-video", status_code=200, 
-         summary="Edit the scenes for the AI generated video")
+
+@app.post(
+    "/v1/edit-video",
+    status_code=200,
+    summary="Edit the scenes for the AI generated video",
+)
 def edit_video(response: Response, body: EditScriptRequestBody):
-    return API_CONTROLLER.edit_video(response=response, scenes=body.scenes, final_video_url=body.signed_url);
-
-@app.get("/v1/get-moviepy-fonts", status_code=200,
-         summary="Get the list of fonts supported by moviepy")
-def get_moviepy_fonts():
-    from moviepy.editor import TextClip
-    print(TextClip.list('font'))
+    return API_CONTROLLER.edit_video(
+        response=response, scenes=body.scenes, final_video_url=body.signed_url
+    )
 
