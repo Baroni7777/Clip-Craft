@@ -22,9 +22,7 @@ change_settings(
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 PEXEL_HEADERS = {"Authorization": os.getenv("PEXEL_API_KEY")}
-VID_PREF = "https://api.pexels.com/videos/search?"
-IMG_PREF = "https://api.pexels.com/v1/search?"
-SAVED_VIDEO_FORMAT = ".mp4"
+FPS = 24
 SAMPLE_RATE = 44100
 SUPPORTED_IMAGE_FORMATS = [".jpg", ".jpeg", ".png", ".webp", ".heic"]
 SUPPORTED_VIDEO_FORMATS = [".mp4", ".mov", ".mpeg", ".avi"]
@@ -33,7 +31,7 @@ SUPPORTED_VIDEO_FORMATS = [".mp4", ".mov", ".mpeg", ".avi"]
 class ContentCreator:
 
     
-    def __init__(self,DATABASE_OPERATIONS_SERVICE: any, user_video_options: dict = {}):
+    def __init__(self, DATABASE_OPERATIONS_SERVICE: any, user_video_options: dict = {}):
         self.user_video_options = user_video_options;
         self.DATABASE_OPERATIONS_SERVICE = DATABASE_OPERATIONS_SERVICE;
         if not user_video_options:
@@ -46,6 +44,10 @@ class ContentCreator:
         self.style = user_video_options["template"]
         self.duration = user_video_options["duration"]
         self.orientation = user_video_options["orientation"]
+        self.resolution = self.set_res(self.orientation)
+
+        self.VID_PREF = f"https://api.pexels.com/videos/search?orientation={self.orientation}&per_page=1&query="
+        self.IMG_PREF = f"https://api.pexels.com/v1/search?orientation={self.orientation}&per_page=1&query="
 
         self.uploaded_files_names = user_video_options["uploaded_files_names"]
         self.user_media_path = f"temp\\{unique_folder_id_param}"
@@ -96,7 +98,7 @@ class ContentCreator:
         return response.json()
 
 
-    def download_stock(self, media_url, user_media_path: str):
+    def download_media(self, media_url, user_media_path: str):
         response = requests.get(media_url)
         response.raise_for_status()
 
@@ -163,7 +165,12 @@ class ContentCreator:
             except json.JSONDecodeError:
                 log.error("Could not parse JSON")
         return None
-
+    
+    def set_res(self, orientation):
+        if orientation == "portrait":
+            return (720, 1280)
+        else:
+            return (1280, 720)
 
     def get_system_prompt(self, prompt_type: str):
         file_path = f'./constants/profiles/{prompt_type}.txt'
@@ -175,7 +182,7 @@ class ContentCreator:
 
     def start_script_generation(self):
         
-        if not self.title or not self.desc or not self.duration or not self.style or not self.orientation:
+        if not self.title or not self.desc or not self.duration or not self.style or not self.resolution:
             return;
         else:
             
@@ -185,12 +192,7 @@ class ContentCreator:
             if not os.path.exists(f"{self.user_media_path}\\audio"):
                 os.makedirs(f"{self.user_media_path}\\audio")
 
-            if self.orientation == "portrait":
-                res = (720, 1280)
-            else:
-                res = (1280, 720)
 
-            
             media_data = []
             log.info("Analysing user media files")
             for file_name in self.uploaded_files_names:
@@ -212,9 +214,10 @@ class ContentCreator:
                 media_data.append({"source": file_path, "desc": response.text})
                 
 
-            video_prompt = f"""title: {self.title} description: {self.desc} style: {self.style} duration: {self.duration}
-            Media clips and AI descriptions: {media_data}
-            """
+            video_prompt = f"""title: {self.title} description: {self.desc} style: {self.style} duration: {self.duration}"""
+            if self.user_has_provided_media:
+                video_prompt += f'Media clips and AI descriptions: {media_data}'
+            
             response = self.video_model.generate_content(video_prompt)
             script = self.format_json(raw=response.text)
         
@@ -222,19 +225,21 @@ class ContentCreator:
             for clip in script["scenes"]:
                 source, form = clip["type"].split("_")
                 if source == "stock":
-                    suffix = f"query={quote(clip['query'])}&per_page=1"
 
                     if form == "video":
-                        response = self.query_pexel(VID_PREF + suffix)
-                        media_url = response["videos"][0]["video_files"][0]["link"]
+                        response = self.query_pexel(self.VID_PREF + quote(clip['query']))
+                        for video in response["videos"][0]["video_files"]:
+                            if video["quality"] == "hd":
+                                media_url = video["link"]
+                                break
                         clip["media_url"] = media_url
-                        file_path = self.download_stock(media_url, user_media_path=self.user_media_path)
+                        file_path = self.download_media(media_url, user_media_path=self.user_media_path)
 
                     elif form == "photo":
-                        response = self.query_pexel(IMG_PREF + suffix)
-                        media_url = response["photos"][0]["src"]["landscape"]
+                        response = self.query_pexel(self.IMG_PREF + quote(clip['query']))
+                        media_url = response["photos"][0]["src"][self.orientation]
                         clip["media_url"] = media_url
-                        file_path = self.download_stock(media_url, user_media_path=self.user_media_path)
+                        file_path = self.download_media(media_url, user_media_path=self.user_media_path)
 
                     clip["media_path"] = file_path
                     del clip["query"]
@@ -260,9 +265,9 @@ class ContentCreator:
             for i, pair in enumerate(script["scenes"]):
                 form = pair["type"].split("_")[1]
                 if form == "photo":
-                    mov_clip = create_photo_clip(pair["media_path"], pair["audio_path"], res)
+                    mov_clip = create_photo_clip(pair["media_path"], pair["audio_path"], self.resolution)
                 elif form == "video":
-                    mov_clip = create_video_clip(pair["media_path"], pair["audio_path"], res)
+                    mov_clip = create_video_clip(pair["media_path"], pair["audio_path"], self.resolution, FPS)
 
                 if pair["text_overlay"]:
                     mov_clip = add_text_overlay(mov_clip, pair["text_overlay"])
@@ -311,18 +316,49 @@ class ContentCreator:
             final_video_path = f"{self.user_media_path}\\final_video.mp4"
             
             final_video.write_videofile(
-                final_video_path, codec="libx264", audio_codec="aac"
+                final_video_path, codec="libx264", audio_codec="aac", fps=FPS
             )
 
 
-            unique_final_video_name = str(uuid.uuid4())+SAVED_VIDEO_FORMAT
+            unique_final_video_name = str(uuid.uuid4())+'.mp4'
             self.DATABASE_OPERATIONS_SERVICE.upload_file_by_path(final_video_path, unique_final_video_name)
             signed_file_url = self.DATABASE_OPERATIONS_SERVICE.get_file_link(key=unique_final_video_name)
             shutil.rmtree(self.user_media_path, ignore_errors=True)
             
             return {"signed_url": signed_file_url, "script": script}
-    
-    
-    def edit_video(self, scene_to_be_edited: any, DATABASE_OPERATIONS_SERVICE: any, content_creator: any, final_video_url: str):
-        return edit_video(final_video_url=final_video_url, start_time=scene_to_be_edited["start_time"], end_time=scene_to_be_edited["end_time"], scene=scene_to_be_edited, DatabaseOperationsService=DATABASE_OPERATIONS_SERVICE, content_creator=content_creator)
-      
+        
+
+    def edit_video(self, scene: any, final_video_url: str):
+        unique_folder_name = str(uuid.uuid4())
+        edit_video_path = f"..\\temp\\video_editing\\{unique_folder_name}"
+        if not os.path.exists(edit_video_path):
+            os.makedirs(edit_video_path)
+        
+        os.makedirs(edit_video_path+"\\audio", exist_ok=True)
+        os.makedirs(edit_video_path+"\\media", exist_ok=True)
+
+        file_path_final_video = self.download_media(media_url=final_video_url, user_media_path=edit_video_path)
+        
+        video = VideoFileClip(file_path_final_video)
+        video_before_cut = video.subclip(0, scene["start_time"])
+        video_after_cut = video.subclip(scene["end_time"], video.duration)
+        
+        audio_path = self.text_to_speech(text=scene["script"], out_name="new_script_audio", user_media_path=edit_video_path)
+        media_path = self.download_media(media_url=scene["media_url"], user_media_path=edit_video_path)
+        
+        final_clip = None
+
+        if any(media_path.endswith(ext) for ext in SUPPORTED_IMAGE_FORMATS):
+            final_clip = create_photo_clip(media_path, audio_path, video.size)
+            
+        elif any(media_path.endswith(ext) for ext in SUPPORTED_VIDEO_FORMATS):
+            final_clip = create_video_clip(media_path, audio_path, video.size)
+        
+        
+        final_video = concatenate_videoclips([video_before_cut, final_clip, video_after_cut])
+        file_path_edit_video = f"{edit_video_path}\\final_edited_video.mp4"
+        final_video.write_videofile(file_path_edit_video, codec="libx264", audio_codec="aac")
+        
+        self.DATABASE_OPERATIONS_SERVICE.upload_file_by_path(file_path=file_path_edit_video, file_name=unique_folder_name)
+        edited_video_url = self.DATABASE_OPERATIONS_SERVICE.get_file_link(key=unique_folder_name)
+        return edited_video_url;

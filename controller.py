@@ -13,6 +13,7 @@ DATABASE_OPERATIONS_SERVICE = DatabaseOperations()
 class ApiController:
 
         async def generate_video(self, request: Request, response: Response):
+            # try:
             request_formdata = await request.form()
             unique_folder_name = str(uuid.uuid4())
             user_provided_media = False
@@ -94,18 +95,15 @@ class ApiController:
             except Exception as e:
                 log.error(f"Error converting string to bool: {e}")
                 return False
-        
-        
+                
         def edit_video(self, response: Response, scenes: any, final_video_url: str):
-            edited_scene_index = 0;
+            edited_scene_index = 0
             for i in range (len(scenes)):
                 if "edited" in scenes[i] and self.string_to_bool(scenes[i]["edited"]) == True:
                     edited_scene_index = i;
-                    break;
+                    break
             
-            # edited_video_signed_url = content_creator.edit_video(scenes[edited_scene_index], final_video_url)
-            #log.info(f"Editing scene index: {edited_scene_index}")
             content_creator = ContentCreator(DATABASE_OPERATIONS_SERVICE=DATABASE_OPERATIONS_SERVICE)
-            edited_video_signed_url = content_creator.edit_video(scene_to_be_edited=scenes[edited_scene_index], DATABASE_OPERATIONS_SERVICE=DATABASE_OPERATIONS_SERVICE, content_creator=content_creator, final_video_url=final_video_url)
+            edited_video_signed_url = content_creator.edit_video(scene=scenes[edited_scene_index], final_video_url=final_video_url)
                         
             return {"signed_url": edited_video_signed_url}

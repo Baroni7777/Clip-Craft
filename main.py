@@ -38,10 +38,10 @@ async def generate_video(request: Request, response: Response):
          summary="Edit the scenes for the AI generated video")
 def edit_video(response: Response, body: EditScriptRequestBody):
     return API_CONTROLLER.edit_video(response=response, scenes=body.scenes, final_video_url=body.signed_url);
-   
-   
-@app.post("/test", status_code=200, 
-         summary="Test Endpoint")
-def test(request: Request, response: Response):
-    return API_CONTROLLER.test();
+
+@app.get("/v1/get-moviepy-fonts", status_code=200,
+         summary="Get the list of fonts supported by moviepy")
+def get_moviepy_fonts():
+    from moviepy.editor import TextClip
+    print(TextClip.list('font'))
 

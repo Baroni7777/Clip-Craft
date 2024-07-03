@@ -1,26 +1,26 @@
 {
-    "music": [
-        "acoustic",
-        "ambient",
-        "cinematic",
-        "electronic",
-        "Lo-Fi Hip Hop"
-    ],
-    "scenes": [
-        {
-            "text_overlay": {
-                "position": [
-                    "center",
-                    "top"
-                ]
-            },
-            "transition": [
-                "crossfade",
-                "fade-to-black",
-                "fade-from-black",
-                "slide",
-                "wipe"
-            ]
-        }
-    ]
+  "music": ["acoustic", "ambient", "cinematic", "electronic", "Lo-Fi Hip Hop"],
+  "scenes": [
+    {
+      "text_font": [
+        "Arial-Black",
+        "Brush-Script-MT-Italic",
+        "Comic-Sans-MS",
+        "Impact",
+        "Lucida-Calligraphy-Italic",
+        "Rockwell-Extra-Bold",
+        "Segoe-UI-Bold",
+        "Viner-Hand-ITC",
+        "Copperplate-Gothic-Bold",
+        "Freestyle-Script"
+      ],
+      "transition": [
+        "crossfade",
+        "fade-to-black",
+        "fade-from-black",
+        "slide",
+        "wipe"
+      ]
+    }
+  ]
 }
