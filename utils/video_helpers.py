@@ -12,7 +12,6 @@ import uuid
 import os
 from urllib.parse import quote, urlparse
 
-
 class VideoTransitionHelper:
     @staticmethod
     def crossfade(clip1, clip2, duration):
@@ -177,13 +176,17 @@ def edit_video(final_video_url: str, start_time, end_time, scene, DatabaseOperat
     audio = AudioFileClip(audio_path)
     final_clip = None
     if is_image_file(media_path):
-        image_clip = ImageClip(media_path, duration=audio.duration)
-        final_clip = image_clip.set_audio(audio)
+        # image_clip = ImageClip(media_path, duration=audio.duration)
+        # final_clip = image_clip.set_audio(audio)
+        final_clip = create_photo_clip(photo_path=media_path, audio_path=audio_path, res=(1280, 720))
+        
     elif is_video_file(media_path):
-        new_media_video = VideoFileClip(media_path)
-        audio = audio.subclip(0, min(new_media_video.duration, audio.duration))
-        final_clip = new_media_video.set_audio(audio)
-
+        # new_media_video = VideoFileClip(media_path)
+        # audio = audio.subclip(0, min(new_media_video.duration, audio.duration))
+        # final_clip = new_media_video.set_audio(audio)
+        final_clip = create_video_clip(video_path=media_path, audio_path=audio_path, res=(1280, 720))
+    
+    
     # concatenate the video_before_cut, new video, and video_after_cut
     final_video = concatenate_videoclips([video_before_cut, final_clip, video_after_cut])
     final_video.write_videofile(f"{edit_video_path}\\final_edited_video.mp4", codec="libx264", audio_codec="aac")
@@ -193,6 +196,10 @@ def edit_video(final_video_url: str, start_time, end_time, scene, DatabaseOperat
     edited_final_video_url = DatabaseOperationsService.get_file_link(key=unique_folder_name)
     ## one issue is that the music will not be present in the new video scene
     return edited_final_video_url;
+
+
+
+
 
 
 def is_image_file(filename):
