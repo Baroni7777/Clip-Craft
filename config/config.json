@@ -3,16 +3,11 @@
   "scenes": [
     {
       "text_font": [
-        "Arial-Black",
-        "Brush-Script-MT-Italic",
-        "Comic-Sans-MS",
-        "Impact",
-        "Lucida-Calligraphy-Italic",
-        "Rockwell-Extra-Bold",
-        "Segoe-UI-Bold",
-        "Viner-Hand-ITC",
-        "Copperplate-Gothic-Bold",
-        "Freestyle-Script"
+        "Agency-FB",
+        "Arial-Rounded-MT-Bold",
+        "Harlow-Solid-Italic",
+        "Tahoma",
+        "Trebuchet-MS"
       ],
       "transition": [
         "crossfade",

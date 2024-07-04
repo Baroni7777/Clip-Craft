@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 cred = credentials.Certificate(
-    os.getcwd() + "\\credentials\\service_account_credentials.json"
+    os.getcwd() + "/credentials/service_account_credentials.json"
 )
 firebase_admin.initialize_app(
     cred, {"storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET")}
@@ -27,7 +27,6 @@ class DatabaseOperations:
             log.info(f"Uploading file: {file_path}")
             blob = bucket.blob(file_name)
             blob.upload_from_filename(file_path)
-            log.info(f"File {file_path} uploaded to {file_name}.")
         except Exception as e:
             log.error(f"Failed to upload file {file_path}: {e}")
 
@@ -40,7 +39,6 @@ class DatabaseOperations:
             local_file_path = os.path.join(destination_path, key)
             os.makedirs(destination_path, exist_ok=True)
             blob.download_to_filename(local_file_path)
-            log.info(f"File {key} downloaded to {destination_path}.")
         except Exception as e:
             log.error(f"Failed to download file {key}: {e}")
 
@@ -51,8 +49,6 @@ class DatabaseOperations:
             url = blob.generate_signed_url(
                 expiration=datetime.timedelta(minutes=expiration), method="GET"
             )
-
-            log.info(f"Signed URL for {key}: {url}")
             return url
         except Exception as e:
             log.error(f"Failed to generate signed URL for {key}: {e}")

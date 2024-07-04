@@ -91,8 +91,6 @@ class ApiController:
             content = await file.read()
             await out_file.write(content)
 
-        log.info(f"File saved to {file_path}")
-
     def string_to_bool(self, string: str):
         try:
             if string.lower() == "true":

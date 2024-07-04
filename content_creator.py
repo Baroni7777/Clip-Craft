@@ -16,7 +16,7 @@ import google.generativeai as genai
 import google.cloud.texttospeech as tts
 from google.cloud import speech_v1p1beta1 as speech
 
-change_settings({"IMAGEMAGICK_BINARY": os.getenv("IMAGE_MAGICK_PATH")})
+# change_settings({"IMAGEMAGICK_BINARY": os.getenv("IMAGE_MAGICK_PATH")})
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 PEXEL_HEADERS = {"Authorization": os.getenv("PEXEL_API_KEY")}
@@ -62,7 +62,7 @@ class ContentCreator:
         with open("config/config.json", "r") as file:
             config = json.load(file)
 
-        self.SYSTEM_MESSAGE += f'''\nYou MUST ONLY choose values from the following options: \n{config}.'''
+        self.SYSTEM_MESSAGE += f'''\nYou MUST ONLY choose music, font and transitions from the following options: \n{config}.'''
 
         self.desc_model = genai.GenerativeModel("gemini-1.5-flash")
         self.video_model = genai.GenerativeModel(
@@ -137,12 +137,12 @@ class ContentCreator:
             content = audio_file.read()
 
         # Split the content into chunks
-        chunk_size = 10 * 1024 * 1024  # 10 MB
+        chunk_size = 10 * 1024 * 1024 - 1000  # Slightly less than 10 MB
         chunks = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
 
         all_results = []
 
-        for i, chunk in enumerate(chunks):
+        for chunk in chunks:
             audio = speech.RecognitionAudio(content=chunk)
             config = speech.RecognitionConfig(
                 encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
@@ -397,7 +397,7 @@ class ContentCreator:
             final_clip = create_photo_clip(media_path, audio_path, video.size)
 
         elif any(media_path.endswith(ext) for ext in SUPPORTED_VIDEO_FORMATS):
-            final_clip = create_video_clip(media_path, audio_path, video.size)
+            final_clip = create_video_clip(media_path, audio_path, video.size, video.fps)
 
         final_video = concatenate_videoclips(
             [video_before_cut, final_clip, video_after_cut]
