@@ -2,7 +2,7 @@
 
 👏😊Our app is finally available online for everyone to play around: 
 
-![tech stack](tech stack 💾 (1).jpg)
+![tech stack](https://github.com/Louisljz/clipcraft_backend/blob/main/tech%20stack%20%F0%9F%92%BE%20(1).jpg)
 
 ## Our Story
 
@@ -15,7 +15,8 @@ Our versatile application can be used for travel diaries, food vlogs, promotiona
 ## Architecture
 
 Dive into Clip Craft's thinking framework:
-![tech stack](tech stack 💾.jpg)
+
+![flowchart](https://github.com/Louisljz/clipcraft_backend/blob/main/tech%20stack%20%F0%9F%92%BE.jpg)
 
 ## Try our app? 
 
