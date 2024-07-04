@@ -62,7 +62,7 @@ class ApiController:
             "uploaded_files_names": file_names,
         }
 
-        log.info(f"User video options: {user_video_options}")
+        log.info(f"user input: {user_video_options}")
         content_creator = ContentCreator(
             user_video_options=user_video_options,
             DATABASE_OPERATIONS_SERVICE=DATABASE_OPERATIONS_SERVICE,

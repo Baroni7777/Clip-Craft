@@ -21,7 +21,7 @@ As your response, write in this structured JSON format:
             "script": "The sun sets over the tranquil mountains, painting the sky in hues of orange and pink.",
             "text_overlay": {
                 "content": "Sunset over Mountains",
-                "font": "Arial-Black"
+                "font": "Tahoma"
             },
             "transition": "crossfade"
         },

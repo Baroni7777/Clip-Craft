@@ -124,7 +124,6 @@ class ContentCreator:
         file_path = os.path.join(f"{user_media_path}\\audio", f"{out_name}.wav")
         with open(file_path, "wb") as out:
             out.write(response.audio_content)
-            print(f'Generated speech saved to "{file_path}"')
 
         return file_path
 
@@ -234,6 +233,7 @@ class ContentCreator:
             response = self.video_model.generate_content(video_prompt)
             script = self.format_json(raw=response.text)
 
+            log.info(f'video script \n {script}')
             log.info("Retrieving pexel footage and media bucket links..")
             for clip in script["scenes"]:
                 source, form = clip["type"].split("_")

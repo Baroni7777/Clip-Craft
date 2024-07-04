@@ -20,7 +20,7 @@ As your response, write in this structured JSON format:
             "script": "Our family vacation was unforgettable, filled with laughter and joy.",
             "text_overlay": {
                 "content": "Sunset over Mountains",
-                "font": "Arial-Black"
+                "font": "Tahoma"
             },,
             "transition": "fade-from-black"
         }
