@@ -24,7 +24,6 @@ log.basicConfig(
     format="%(asctime)s - %(levelname)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S %z",
 )
-# app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 supported_file_formats = []
 
@@ -56,4 +55,3 @@ def edit_video(response: Response, body: EditScriptRequestBody):
     return API_CONTROLLER.edit_video(
         response=response, scenes=body.scenes, final_video_url=body.signed_url
     )
-

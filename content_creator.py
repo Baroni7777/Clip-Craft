@@ -48,7 +48,7 @@ class ContentCreator:
         self.IMG_PREF = f"https://api.pexels.com/v1/search?orientation={self.orientation}&per_page=1&query="
 
         self.uploaded_files_names = user_video_options["uploaded_files_names"]
-        self.user_media_path = f"temp\\{unique_folder_id_param}"
+        self.user_media_path = os.path.join("temp", unique_folder_id_param)
         self.use_stock_media = user_video_options["use_stock_media"]
         self.user_has_provided_media = user_video_options["user_has_provided_media"]
 
@@ -59,10 +59,10 @@ class ContentCreator:
         else:
             self.SYSTEM_MESSAGE = self.get_system_prompt("stock")
 
-        with open("config/config.json", "r") as file:
+        with open(os.path.join("config", "config.json"), "r") as file:
             config = json.load(file)
 
-        self.SYSTEM_MESSAGE += f'''\nYou MUST ONLY choose music, font and transitions from the following options: \n{config}.'''
+        self.SYSTEM_MESSAGE += f"""\nYou MUST ONLY choose music, font and transitions from the following options: \n{config}."""
 
         self.desc_model = genai.GenerativeModel("gemini-1.5-flash")
         self.video_model = genai.GenerativeModel(
@@ -98,7 +98,7 @@ class ContentCreator:
 
         parsed_url = urlparse(media_url)
         filename = os.path.basename(parsed_url.path)
-        file_path = os.path.join(f"{user_media_path}\\media", filename)
+        file_path = os.path.join(user_media_path, "media", filename)
 
         with open(file_path, "wb") as file:
             file.write(response.content)
@@ -121,7 +121,7 @@ class ContentCreator:
             audio_config=audio_config,
         )
 
-        file_path = os.path.join(f"{user_media_path}\\audio", f"{out_name}.wav")
+        file_path = os.path.join(user_media_path, "audio", f"{out_name}.wav")
         with open(file_path, "wb") as out:
             out.write(response.audio_content)
 
@@ -137,7 +137,9 @@ class ContentCreator:
 
         # Split the content into chunks
         chunk_size = 10 * 1024 * 1024 - 1000  # Slightly less than 10 MB
-        chunks = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
+        chunks = [
+            content[i : i + chunk_size] for i in range(0, len(content), chunk_size)
+        ]
 
         all_results = []
 
@@ -174,7 +176,7 @@ class ContentCreator:
             return (720, 1280)
         else:
             return (1280, 720)
-        
+
     def set_text_width(self, orientation):
         if orientation == "portrait":
             return 35
@@ -182,7 +184,7 @@ class ContentCreator:
             return 75
 
     def get_system_prompt(self, prompt_type: str):
-        file_path = f"./constants/profiles/{prompt_type}.txt"
+        file_path = os.path.join("constants", "profiles", f"{prompt_type}.txt")
         log.info(f"Reading system prompt from {file_path}")
         with open(file_path, "r") as file:
             file_content = file.read()
@@ -200,16 +202,16 @@ class ContentCreator:
             return
         else:
 
-            if not os.path.exists(f"{self.user_media_path}\\media"):
-                os.makedirs(f"{self.user_media_path}\\media")
+            if not os.path.exists(os.path.join(self.user_media_path, "media")):
+                os.makedirs(os.path.join(self.user_media_path, "media"))
 
-            if not os.path.exists(f"{self.user_media_path}\\audio"):
-                os.makedirs(f"{self.user_media_path}\\audio")
+            if not os.path.exists(os.path.join(self.user_media_path, "audio")):
+                os.makedirs(os.path.join(self.user_media_path, "audio"))
 
             media_data = []
             log.info("Analysing user media files")
             for file_name in self.uploaded_files_names:
-                file_path = os.path.join(f"{self.user_media_path}\\media\\", file_name)
+                file_path = os.path.join(self.user_media_path, "media", file_name)
                 file_obj = None
                 prompt = None
 
@@ -233,7 +235,7 @@ class ContentCreator:
             response = self.video_model.generate_content(video_prompt)
             script = self.format_json(raw=response.text)
 
-            log.info(f'video script \n {script}')
+            log.info(f"video script \n {script}")
             log.info("Retrieving pexel footage and media bucket links..")
             for clip in script["scenes"]:
                 source, form = clip["type"].split("_")
@@ -333,7 +335,7 @@ class ContentCreator:
                 del script["scenes"][i]["media_path"]
                 del script["scenes"][i]["audio_path"]
 
-            audio_path = f"{self.user_media_path}\\final_audio.wav"
+            audio_path = os.path.join(self.user_media_path, "final_audio.wav")
             audio_clip = final_video.audio
             audio_clip.fps = SAMPLE_RATE
             audio_clip.write_audiofile(audio_path)
@@ -348,7 +350,7 @@ class ContentCreator:
             log.info("Adding background music..")
             music_file = os.path.join("music", script["music"] + ".mp3")
             final_video = add_background_music(final_video, music_file)
-            final_video_path = f"{self.user_media_path}\\final_video.mp4"
+            final_video_path = os.path.join(self.user_media_path, "final_video.mp4")
 
             final_video.write_videofile(
                 final_video_path, codec="libx264", audio_codec="aac", fps=FPS
@@ -367,12 +369,14 @@ class ContentCreator:
 
     def edit_video(self, scene: any, final_video_url: str):
         unique_folder_name = str(uuid.uuid4())
-        edit_video_path = f"..\\temp\\video_editing\\{unique_folder_name}"
+        edit_video_path = os.path.join(
+            "..", "temp", "video_editing", unique_folder_name
+        )
         if not os.path.exists(edit_video_path):
             os.makedirs(edit_video_path)
 
-        os.makedirs(edit_video_path + "\\audio", exist_ok=True)
-        os.makedirs(edit_video_path + "\\media", exist_ok=True)
+        os.makedirs(os.path.join(edit_video_path, "audio"), exist_ok=True)
+        os.makedirs(os.path.join(edit_video_path, "media"), exist_ok=True)
 
         file_path_final_video = self.download_media(
             media_url=final_video_url, user_media_path=edit_video_path
@@ -397,12 +401,14 @@ class ContentCreator:
             final_clip = create_photo_clip(media_path, audio_path, video.size)
 
         elif any(media_path.endswith(ext) for ext in SUPPORTED_VIDEO_FORMATS):
-            final_clip = create_video_clip(media_path, audio_path, video.size, video.fps)
+            final_clip = create_video_clip(
+                media_path, audio_path, video.size, video.fps
+            )
 
         final_video = concatenate_videoclips(
-            [video_before_cut, final_clip, video_after_cut], method='compose'
+            [video_before_cut, final_clip, video_after_cut], method="compose"
         )
-        file_path_edit_video = f"{edit_video_path}\\final_edited_video.mp4"
+        file_path_edit_video = os.path.join(edit_video_path, "final_edited_video.mp4")
         final_video.write_videofile(
             file_path_edit_video, codec="libx264", audio_codec="aac"
         )

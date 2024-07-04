@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 cred = credentials.Certificate(
-    os.getcwd() + "/credentials/service_account_credentials.json"
+    os.path.join(os.getcwd(), "credentials", "service_account_credentials.json")
 )
 firebase_admin.initialize_app(
     cred, {"storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET")}
@@ -31,7 +31,9 @@ class DatabaseOperations:
             log.error(f"Failed to upload file {file_path}: {e}")
 
     def download_file(
-        self, key: str, destination_path: str = os.getcwd() + "\\bucket_files"
+        self,
+        key: str,
+        destination_path: str = os.path.join(os.getcwd(), "bucket_files"),
     ):
         try:
             log.info(f"Downloading file: {key} to {destination_path}")

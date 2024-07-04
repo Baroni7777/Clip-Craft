@@ -10,6 +10,7 @@ from moviepy.editor import (
 )
 from moviepy.video.fx.resize import resize
 import textwrap
+import os
 
 
 class VideoTransitionHelper:
@@ -100,7 +101,7 @@ def create_photo_clip(photo_path, audio_path, res):
 
 
 def add_text_overlay(clip, text):
-    font_path = 'fonts/' + text["font"] + '.TTF'
+    font_path = os.path.join("fonts", text["font"] + ".TTF")
     text_clip = (
         TextClip(
             text["content"],
@@ -121,7 +122,13 @@ def add_text_overlay(clip, text):
 def add_subtitle(text, start_time, duration, width):
     wrap_txt = textwrap.fill(text.strip().lower(), width)
     text_clip = (
-        TextClip(wrap_txt, fontsize=35, color="white", bg_color="black", font="fonts/trebuchet.TTF")
+        TextClip(
+            wrap_txt,
+            fontsize=35,
+            color="white",
+            bg_color="black",
+            font=os.path.join("fonts", "trebuchet.TTF"),
+        )
         .set_opacity(0.6)
         .set_start(start_time)
         .set_duration(duration)
@@ -155,7 +162,9 @@ def get_subtitle_clips(transcript, width, seconds_per_segment: int = 3):
     # Add the last segment
     if segment_text:
         final_duration = word_start_time - segment_start_time
-        subtitle_clip = add_subtitle(segment_text, segment_start_time, final_duration, width)
+        subtitle_clip = add_subtitle(
+            segment_text, segment_start_time, final_duration, width
+        )
         subtitle_clips.append(subtitle_clip)
 
     return subtitle_clips
