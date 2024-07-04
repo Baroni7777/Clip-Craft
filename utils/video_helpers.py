@@ -100,12 +100,13 @@ def create_photo_clip(photo_path, audio_path, res):
 
 
 def add_text_overlay(clip, text):
+    font_path = 'fonts/' + text["font"] + '.TTF'
     text_clip = (
         TextClip(
             text["content"],
             fontsize=100,
             color="white",
-            font=text["font"],
+            font=font_path,
             stroke_color="black",
             stroke_width=2,
         )
@@ -120,7 +121,7 @@ def add_text_overlay(clip, text):
 def add_subtitle(text, start_time, duration, width):
     wrap_txt = textwrap.fill(text.strip().lower(), width)
     text_clip = (
-        TextClip(wrap_txt, fontsize=35, color="white", bg_color="black")
+        TextClip(wrap_txt, fontsize=35, color="white", bg_color="black", font="fonts/trebuchet.TTF")
         .set_opacity(0.6)
         .set_start(start_time)
         .set_duration(duration)

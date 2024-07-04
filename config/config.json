@@ -3,11 +3,11 @@
   "scenes": [
     {
       "text_font": [
-        "Agency-FB",
-        "Arial-Rounded-MT-Bold",
-        "Harlow-Solid-Italic",
-        "Tahoma",
-        "Trebuchet-MS"
+        "agencyfb",
+        "arial-rounded",
+        "harlow",
+        "tahoma",
+        "trebuchet"
       ],
       "transition": [
         "crossfade",
