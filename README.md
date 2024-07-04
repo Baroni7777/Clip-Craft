@@ -20,9 +20,11 @@ Dive into Clip Craft's thinking framework:
 
 ## Try our app? 
 
+Visit this [repository](https://github.com/Louisljz/clipcraft_frontend), to setup the frontend page! 
+
 Clone this repo and explore our app locally. 
 
-1. docker build -t clipcraft .
-2. docker run -d -p 8000:8000 clipcraft
+1. `docker build -t clipcraft .`
+2. `docker run -d -p 8000:8000 clipcraft`
 
-If you encounter security policy with image magick, please comment policy.xml in the linux build. 
+If you encounter security policy with image magick, please comment `policy.xml` in the linux build. 
