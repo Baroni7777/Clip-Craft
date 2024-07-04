@@ -400,7 +400,7 @@ class ContentCreator:
             final_clip = create_video_clip(media_path, audio_path, video.size, video.fps)
 
         final_video = concatenate_videoclips(
-            [video_before_cut, final_clip, video_after_cut]
+            [video_before_cut, final_clip, video_after_cut], method='compose'
         )
         file_path_edit_video = f"{edit_video_path}\\final_edited_video.mp4"
         final_video.write_videofile(
