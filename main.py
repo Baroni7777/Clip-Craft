@@ -5,7 +5,6 @@ import os
 import logging as log
 from dotenv import load_dotenv
 from controller import ApiController
-from models.edit_script_request_body import EditScriptRequestBody
 from fastapi.middleware.gzip import GZipMiddleware
 
 load_dotenv()
@@ -51,7 +50,5 @@ async def generate_video(request: Request, response: Response):
     status_code=200,
     summary="Edit the scenes for the AI generated video",
 )
-def edit_video(response: Response, body: EditScriptRequestBody):
-    return API_CONTROLLER.edit_video(
-        response=response, scenes=body.scenes, final_video_url=body.signed_url
-    )
+async def edit_video(request: Request, response: Response):
+    return await API_CONTROLLER.edit_video(request=request, response=response)

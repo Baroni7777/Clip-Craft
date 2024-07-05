@@ -44,7 +44,7 @@ class DatabaseOperations:
         except Exception as e:
             log.error(f"Failed to download file {key}: {e}")
 
-    def get_file_link(self, key: str, expiration: int = 40):
+    def get_file_link(self, key: str, expiration: int = 60):
         try:
             log.info(f"Generating signed URL for file: {key}")
             blob = bucket.blob(key)

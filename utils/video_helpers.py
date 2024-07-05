@@ -9,7 +9,12 @@ from moviepy.editor import (
     vfx,
 )
 from moviepy.video.fx.resize import resize
+import google.cloud.texttospeech as tts
+from google.cloud import speech_v1p1beta1 as speech
+from urllib.parse import urlparse
+import requests
 import textwrap
+import io
 import os
 
 
@@ -119,8 +124,8 @@ def add_text_overlay(clip, text):
     return CompositeVideoClip([clip, text_clip])
 
 
-def add_subtitle(text, start_time, duration, width):
-    wrap_txt = textwrap.fill(text.strip().lower(), width)
+def add_subtitle(text, start_time, duration):
+    wrap_txt = textwrap.fill(text.strip().lower(), 70)
     text_clip = (
         TextClip(
             wrap_txt,
@@ -138,7 +143,7 @@ def add_subtitle(text, start_time, duration, width):
     return text_clip
 
 
-def get_subtitle_clips(transcript, width, seconds_per_segment: int = 3):
+def get_subtitle_clips(transcript, seconds_per_segment: int = 3):
     subtitle_clips = []
     segment_start_time = 0.0
     segment_text = ""
@@ -150,7 +155,7 @@ def get_subtitle_clips(transcript, width, seconds_per_segment: int = 3):
 
             if word_start_time - segment_start_time >= seconds_per_segment:
                 subtitle_clip = add_subtitle(
-                    segment_text, segment_start_time, seconds_per_segment, width
+                    segment_text, segment_start_time, seconds_per_segment
                 )
                 subtitle_clips.append(subtitle_clip)
 
@@ -170,7 +175,7 @@ def get_subtitle_clips(transcript, width, seconds_per_segment: int = 3):
     return subtitle_clips
 
 
-def add_background_music(video, music_file, volume=0.2):
+def add_background_music(video, music_file, volume=0.4):
     background_music = AudioFileClip(music_file).volumex(volume)
     video_audio = video.audio
     final_audio = CompositeAudioClip(
@@ -178,3 +183,70 @@ def add_background_music(video, music_file, volume=0.2):
     )
     video = video.set_audio(final_audio)
     return video
+
+
+def download_media(media_url, user_media_path: str):
+        response = requests.get(media_url)
+        response.raise_for_status()
+
+        parsed_url = urlparse(media_url)
+        filename = os.path.basename(parsed_url.path)
+        file_path = os.path.join(user_media_path, "media", filename)
+
+        with open(file_path, "wb") as file:
+            file.write(response.content)
+
+        return file_path
+
+def text_to_speech(text, out_name, user_media_path: str):
+    text_input = tts.SynthesisInput(text=text)
+    voice_params = tts.VoiceSelectionParams(
+        language_code="en-US", name="en-US-Studio-O"
+    )
+    audio_config = tts.AudioConfig(audio_encoding=tts.AudioEncoding.LINEAR16)
+
+    client = tts.TextToSpeechClient(
+        client_options={"api_key": os.getenv("SPEECH_API_KEY")}
+    )
+    response = client.synthesize_speech(
+        input=text_input,
+        voice=voice_params,
+        audio_config=audio_config,
+    )
+
+    file_path = os.path.join(user_media_path, "audio", f"{out_name}.wav")
+    with open(file_path, "wb") as out:
+        out.write(response.audio_content)
+
+    return file_path
+
+def speech_to_text(audio_path: str, sample_rate):
+    client = speech.SpeechClient(
+        client_options={"api_key": os.getenv("SPEECH_API_KEY")}
+    )
+
+    with io.open(audio_path, "rb") as audio_file:
+        content = audio_file.read()
+
+    # Split the content into chunks
+    chunk_size = 10 * 1024 * 1024 - 1000  # Slightly less than 10 MB
+    chunks = [
+        content[i : i + chunk_size] for i in range(0, len(content), chunk_size)
+    ]
+
+    all_results = []
+
+    for chunk in chunks:
+        audio = speech.RecognitionAudio(content=chunk)
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=sample_rate,
+            language_code="en-US",
+            audio_channel_count=2,
+            enable_word_time_offsets=True,
+        )
+
+        response = client.recognize(config=config, audio=audio)
+        all_results.extend(response.results)
+
+    return all_results

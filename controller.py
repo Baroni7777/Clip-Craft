@@ -6,7 +6,7 @@ import aiofiles
 import uuid
 import logging as log
 from utils.database_operations import DatabaseOperations
-from content_creator import ContentCreator
+from content_creator import ContentCreator, VideoEditor
 
 
 DATABASE_OPERATIONS_SERVICE = DatabaseOperations()
@@ -15,7 +15,7 @@ DATABASE_OPERATIONS_SERVICE = DatabaseOperations()
 class ApiController:
 
     async def generate_video(self, request: Request, response: Response):
-        try:
+        # try:
             request_formdata = await request.form()
             unique_folder_name = str(uuid.uuid4())
             user_provided_media = False
@@ -53,7 +53,6 @@ class ApiController:
                 "description": formdata_dict.get("description"),
                 "template": formdata_dict.get("template"),
                 "duration": formdata_dict.get("duration"),
-                "orientation": formdata_dict.get("orientation"),
                 "use_stock_media": self.string_to_bool(
                     formdata_dict.get("use_stock_media")
                 ),
@@ -69,12 +68,12 @@ class ApiController:
             )
             response = content_creator.start_script_generation()
 
-        except Exception as e:
-            log.error(f"Error processing request: {e}")
-            response.status_code = 500
-            return {"status": "error", "message": "Internal server error"}
+        # except Exception as e:
+        #     log.error(f"Error processing request: {e}")
+        #     response.status_code = 500
+        #     return {"status": "error", "message": "Internal server error"}
 
-        return {"script": response["script"], "signed_url": response["signed_url"]}
+            return {"script": response["script"], "signed_url": response["signed_url"]}
 
     def is_valid_file(self, file: UploadFile):
         if file.size > 0:
@@ -100,21 +99,19 @@ class ApiController:
             log.error(f"Error converting string to bool: {e}")
             return False
 
-    def edit_video(self, response: Response, scenes: any, final_video_url: str):
-        edited_scene_index = 0
-        for i in range(len(scenes)):
-            if (
-                "edited" in scenes[i]
-                and self.string_to_bool(scenes[i]["edited"]) == True
-            ):
-                edited_scene_index = i
-                break
+    async def edit_video(self, request: Request, response: Response):
+        try:
+            request_body = await request.json()
+            unique_folder_name = str(uuid.uuid4())
+            video_editor = VideoEditor(
+                unique_folder_id=unique_folder_name,
+                script=request_body,
+                DATABASE_OPERATIONS_SERVICE=DATABASE_OPERATIONS_SERVICE,
+            )
+            response = video_editor.edit_video()
+        except Exception as e:
+            log.error(f"Error processing request: {e}")
+            response.status_code = 500
+            return {"status": "error", "message": "Internal server error"}
 
-        content_creator = ContentCreator(
-            DATABASE_OPERATIONS_SERVICE=DATABASE_OPERATIONS_SERVICE
-        )
-        edited_video_signed_url = content_creator.edit_video(
-            scene=scenes[edited_scene_index], final_video_url=final_video_url
-        )
-
-        return {"signed_url": edited_video_signed_url}
+        return {"signed_url": response["signed_url"]}
