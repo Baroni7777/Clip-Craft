@@ -168,7 +168,7 @@ def get_subtitle_clips(transcript, seconds_per_segment: int = 3):
     if segment_text:
         final_duration = word_start_time - segment_start_time
         subtitle_clip = add_subtitle(
-            segment_text, segment_start_time, final_duration, width
+            segment_text, segment_start_time, final_duration
         )
         subtitle_clips.append(subtitle_clip)
 

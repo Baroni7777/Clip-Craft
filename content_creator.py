@@ -40,7 +40,9 @@ class ContentCreator:
         self.duration = user_video_options["duration"]
 
         self.VID_PREF = f"https://api.pexels.com/videos/search?orientation=landscape&per_page=1&query="
-        self.IMG_PREF = f"https://api.pexels.com/v1/search?orientation=landscape&per_page=1&query="
+        self.IMG_PREF = (
+            f"https://api.pexels.com/v1/search?orientation=landscape&per_page=1&query="
+        )
 
         self.uploaded_files_names = user_video_options["uploaded_files_names"]
         self.user_media_path = os.path.join("temp", "new", self.unique_folder_id_param)
@@ -108,7 +110,7 @@ class ContentCreator:
         with open(file_path, "r") as file:
             file_content = file.read()
         return file_content
-    
+
     def create_dirs(self, user_media_path: str):
         if not os.path.exists(os.path.join(user_media_path, "media")):
             os.makedirs(os.path.join(self.user_media_path, "media"))
@@ -118,12 +120,7 @@ class ContentCreator:
 
     def start_script_generation(self):
 
-        if (
-            not self.title
-            or not self.desc
-            or not self.duration
-            or not self.style
-        ):
+        if not self.title or not self.desc or not self.duration or not self.style:
             return
         else:
             media_data = []
@@ -223,6 +220,9 @@ class ContentCreator:
                 if pair["text_overlay"]:
                     mov_clip = add_text_overlay(mov_clip, pair["text_overlay"])
 
+                del pair["media_path"]
+                del pair["audio_path"]
+
                 # transitions
                 # if i > 0:
                 #     prev_clip = clips[-1]
@@ -238,7 +238,12 @@ class ContentCreator:
             final_video_path = os.path.join(self.user_media_path, "final_video.mp4")
 
             final_video.write_videofile(
-                final_video_path, codec="libx264", audio_codec="aac", fps=FPS
+                final_video_path,
+                codec="libx264",
+                audio_codec="aac",
+                fps=FPS,
+                preset="ultrafast",
+                threads=4,
             )
 
             unique_final_video_name = self.unique_folder_id_param + ".mp4"
@@ -254,7 +259,9 @@ class ContentCreator:
 
 
 class VideoEditor:
-    def __init__(self, script: dict, unique_folder_id: str, DATABASE_OPERATIONS_SERVICE: any):
+    def __init__(
+        self, script: dict, unique_folder_id: str, DATABASE_OPERATIONS_SERVICE: any
+    ):
         self.script = script
         self.unique_folder_id_param = unique_folder_id
         self.user_media_path = os.path.join("temp", "edit", self.unique_folder_id_param)
@@ -269,8 +276,10 @@ class VideoEditor:
     def edit_video(self):
         log.info("Downloading media files..")
         for clip in self.script["scenes"]:
-            media_path = download_media(clip["media_url"], user_media_path=self.user_media_path)
-            clip['media_path'] = media_path
+            media_path = download_media(
+                clip["media_url"], user_media_path=self.user_media_path
+            )
+            clip["media_path"] = media_path
 
         log.info("Generating narration")
         for clip in self.script["scenes"]:
@@ -310,7 +319,7 @@ class VideoEditor:
 
         final_video = concatenate_videoclips(mov_clips, method="compose")
 
-        if 'subtitleInput' in self.script and self.script['subtitleInput'] == 'true':
+        if self.script["subtitleInput"]:
             log.info("Generating subtitles..")
             audio_path = os.path.join(self.user_media_path, "final_audio.wav")
             audio_clip = final_video.audio
@@ -321,11 +330,10 @@ class VideoEditor:
             subtitles = get_subtitle_clips(transcript)
             final_video = CompositeVideoClip([final_video] + subtitles)
 
-        if 'musicInput' in self.script and self.script['musicInput'] == 'true':
+        if self.script["musicInput"]:
             log.info("Adding background music..")
             music_file = os.path.join("music", self.script["music"] + ".mp3")
             final_video = add_background_music(final_video, music_file)
-
 
         final_video_path = os.path.join(self.user_media_path, "final_video.mp4")
         final_video.write_videofile(

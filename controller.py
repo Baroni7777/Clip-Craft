@@ -100,7 +100,7 @@ class ApiController:
             return False
 
     async def edit_video(self, request: Request, response: Response):
-        try:
+        # try:
             request_body = await request.json()
             unique_folder_name = str(uuid.uuid4())
             video_editor = VideoEditor(
@@ -109,9 +109,9 @@ class ApiController:
                 DATABASE_OPERATIONS_SERVICE=DATABASE_OPERATIONS_SERVICE,
             )
             response = video_editor.edit_video()
-        except Exception as e:
-            log.error(f"Error processing request: {e}")
-            response.status_code = 500
-            return {"status": "error", "message": "Internal server error"}
+        # except Exception as e:
+        #     log.error(f"Error processing request: {e}")
+        #     response.status_code = 500
+        #     return {"status": "error", "message": "Internal server error"}
 
-        return {"signed_url": response["signed_url"]}
+            return {"signed_url": response["signed_url"]}
