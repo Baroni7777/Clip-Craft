@@ -337,7 +337,12 @@ class VideoEditor:
 
         final_video_path = os.path.join(self.user_media_path, "final_video.mp4")
         final_video.write_videofile(
-            final_video_path, codec="libx264", audio_codec="aac", fps=FPS
+            final_video_path,
+            codec="libx264",
+            audio_codec="aac",
+            fps=FPS,
+            preset="ultrafast",
+            threads=4,
         )
 
         unique_final_video_name = self.unique_folder_id_param + ".mp4"
