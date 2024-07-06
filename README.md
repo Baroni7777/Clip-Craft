@@ -20,7 +20,7 @@ Dive into Clip Craft's thinking framework:
 
 ## Try our app? 
 
-Visit this [repository](https://github.com/Louisljz/clipcraft_frontend), to setup the frontend page! 
+Visit this [repository](https://github.com/jacdevv/clipcraft), to setup the frontend page! 
 
 Clone this repo and explore our app locally. 
 
